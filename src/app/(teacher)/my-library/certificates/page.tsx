@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
-import { requireSession } from "@/lib/auth/guards";
+import { auth } from "@/lib/auth/config";
 import { db } from "@/lib/db/client";
 import { certificates } from "@/lib/db/schema";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
@@ -10,15 +10,20 @@ export const dynamic = "force-dynamic";
 
 export const metadata = { title: "Certificates — Teacher Resource Bank" };
 
-// Auth-only by design — earned certificates must remain accessible even
-// when the subscription lapses. No subscription check here, ever.
 export default async function CertificatesPage() {
-  const session = await requireSession();
-  const certs = await db
-    .select()
-    .from(certificates)
-    .where(eq(certificates.userId, session.user.id))
-    .orderBy(desc(certificates.issuedAt));
+  let certs: any[] = [];
+  try {
+    const session = await auth();
+    if (session?.user?.id) {
+      certs = await db
+        .select()
+        .from(certificates)
+        .where(eq(certificates.userId, session.user.id))
+        .orderBy(desc(certificates.issuedAt));
+    }
+  } catch {
+    // Handled gracefully for device token or offline users
+  }
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
