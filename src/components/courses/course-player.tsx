@@ -1,0 +1,294 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import ReactMarkdown from "react-markdown";
+import { Badge, Button, Card, CardBody } from "@/components/ui";
+import { cn } from "@/lib/utils/cn";
+
+export interface PlayerModule {
+  id: string;
+  title: string;
+  body: string;
+  contentType: string;
+}
+
+export function CoursePlayer({
+  courseId,
+  courseTitle,
+  enrollmentId,
+  initialCompleted,
+  modules,
+  isCompleted,
+  certificatesHref = "/dashboard/certificates",
+}: {
+  courseId: string;
+  courseTitle: string;
+  enrollmentId: string | null;
+  initialCompleted: string[];
+  modules: PlayerModule[];
+  isCompleted: boolean;
+  certificatesHref?: string;
+}) {
+  const router = useRouter();
+  const [localEnrolledId, setLocalEnrolledId] = useState<string | null>(enrollmentId);
+  const [completed, setCompleted] = useState<Set<string>>(new Set(initialCompleted));
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [justCompleted, setJustCompleted] = useState(false);
+
+  const activeEnrollmentId = enrollmentId ?? localEnrolledId;
+  const allDone = modules.length > 0 && modules.every((m) => completed.has(m.id));
+  const pct = modules.length ? Math.round((completed.size / modules.length) * 100) : 0;
+
+  async function enroll() {
+    setBusy("enroll");
+    setError(null);
+    try {
+      if (typeof window !== "undefined") {
+        try {
+          const raw = window.localStorage.getItem("trb.enrolled_courses");
+          const list = raw ? JSON.parse(raw) : [];
+          if (!list.includes(courseId)) {
+            list.push(courseId);
+            window.localStorage.setItem("trb.enrolled_courses", JSON.stringify(list));
+          }
+          window.localStorage.setItem(`trb.course_enrolled.${courseId}`, "true");
+        } catch {}
+      }
+      setLocalEnrolledId(`local-${courseId}`);
+
+      const res = await fetch("/api/enrollments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId }),
+      });
+      const data = await res.json().catch(() => null);
+      if (data?.enrollmentId) {
+        setLocalEnrolledId(data.enrollmentId);
+      }
+      router.refresh();
+    } catch {
+      setLocalEnrolledId(`local-${courseId}`);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const stored = window.localStorage.getItem(`trb.course_progress.${courseId}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          setCompleted((prev) => new Set([...Array.from(prev), ...parsed]));
+        }
+      }
+      const raw = window.localStorage.getItem("trb.enrolled_courses");
+      if (raw) {
+        const list = JSON.parse(raw);
+        if (Array.isArray(list) && (list.includes(courseId) || list.includes(courseTitle))) {
+          setLocalEnrolledId((prev) => prev ?? `local-${courseId}`);
+        }
+      }
+    } catch {}
+  }, [courseId, courseTitle]);
+
+  async function toggleModule(moduleId: string, next: boolean) {
+    setBusy(moduleId);
+    setError(null);
+
+    // Optimistic UI update
+    setCompleted((prev) => {
+      const copy = new Set(prev);
+      if (next) copy.add(moduleId);
+      else copy.delete(moduleId);
+
+      // Save locally for offline access
+      if (typeof window !== "undefined") {
+        try {
+          window.localStorage.setItem(
+            `trb.course_progress.${courseId}`,
+            JSON.stringify(Array.from(copy))
+          );
+        } catch {}
+      }
+
+      return copy;
+    });
+
+    if (!activeEnrollmentId || activeEnrollmentId.startsWith("local-")) {
+      setBusy(null);
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/enrollments/${activeEnrollmentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "progress", moduleId, completed: next }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Could not save progress to server.");
+      }
+      router.refresh();
+    } catch (err) {
+      // Keep local completion even if server sync is offline
+      console.warn("Could not sync module progress to server:", err);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function finish() {
+    setBusy("finish");
+    setError(null);
+
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem(`trb.course_completed.${courseId}`, "true");
+      } catch {}
+    }
+
+    if (!activeEnrollmentId || activeEnrollmentId.startsWith("local-")) {
+      setJustCompleted(true);
+      setBusy(null);
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/enrollments/${activeEnrollmentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "complete" }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? "Could not complete the course.");
+      setJustCompleted(true);
+      router.refresh();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      {!activeEnrollmentId && (
+        <Card>
+          <CardBody className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="font-medium text-ink">Not enrolled yet</p>
+              <p className="mt-1 text-sm text-neutral-600">
+                Enroll to track your progress through {courseTitle} and earn a certificate.
+              </p>
+            </div>
+            <Button onClick={enroll} isLoading={busy === "enroll"}>
+              Enroll in this course
+            </Button>
+          </CardBody>
+        </Card>
+      )}
+
+      {activeEnrollmentId && (
+        <Card>
+          <CardBody>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                {isCompleted || justCompleted ? (
+                  <Badge variant="published">Completed</Badge>
+                ) : (
+                  <Badge variant="active">In progress</Badge>
+                )}
+                <span className="text-sm text-neutral-600">
+                  {completed.size} of {modules.length} modules complete
+                </span>
+              </div>
+              <Button
+                onClick={finish}
+                disabled={!allDone || isCompleted}
+                isLoading={busy === "finish"}
+              >
+                {isCompleted || justCompleted ? "Course completed" : "Finish course"}
+              </Button>
+            </div>
+
+            <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-neutral-200">
+              <div className="h-full rounded-full bg-ink transition-all" style={{ width: `${pct}%` }} />
+            </div>
+
+            {!allDone && !isCompleted && (
+              <p className="mt-3 text-xs text-neutral-500">
+                Mark every module complete to finish the course and generate your certificate.
+              </p>
+            )}
+            {justCompleted && (
+              <p className="mt-3 text-sm text-emerald-700">
+                Course completed. Your certificate is being generated —{" "}
+                <Link href={certificatesHref} className="underline">
+                  check your certificates
+                </Link>{" "}
+                in a moment.
+              </p>
+            )}
+          </CardBody>
+        </Card>
+      )}
+
+      {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+
+      {modules.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-neutral-300 bg-white p-10 text-center">
+          <p className="font-medium text-ink">This course has no published modules yet.</p>
+        </div>
+      ) : (
+        <ol className="space-y-4">
+          {modules.map((m, i) => {
+            const isDone = completed.has(m.id);
+            return (
+              <li key={m.id}>
+                <Card>
+                  <CardBody>
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-xs font-semibold text-ink">
+                            {i + 1}
+                          </span>
+                          <h2 className="font-semibold text-ink">{m.title}</h2>
+                          {isDone && <Badge variant="published">Done</Badge>}
+                        </div>
+                        {m.body && (
+                          <div className="prose prose-sm prose-neutral mt-4 max-w-none">
+                            <ReactMarkdown>{m.body}</ReactMarkdown>
+                          </div>
+                        )}
+                      </div>
+
+                      {activeEnrollmentId && (
+                        <label className="flex shrink-0 cursor-pointer items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={isDone}
+                            disabled={busy === m.id}
+                            onChange={(e) => toggleModule(m.id, e.target.checked)}
+                            className={cn("h-4 w-4 rounded border-neutral-300")}
+                          />
+                          <span className="text-neutral-600">{isDone ? "Completed" : "Mark complete"}</span>
+                        </label>
+                      )}
+                    </div>
+                  </CardBody>
+                </Card>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </div>
+  );
+}

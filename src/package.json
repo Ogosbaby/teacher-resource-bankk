@@ -1,0 +1,4 @@
+{
+  "//": "Marks src/** as ESM so Node (and tsx) resolve packages with the `import` export condition. @react-pdf/renderer's dependency @react-pdf/hyphenate declares an import-only export map, which CJS resolution cannot satisfy — the certificate worker fails with ERR_PACKAGE_PATH_NOT_EXPORTED without this. Next.js bundles src itself and is unaffected.",
+  "type": "module"
+}

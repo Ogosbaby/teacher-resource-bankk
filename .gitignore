@@ -1,0 +1,19 @@
+node_modules
+
+# Signing key for the activation-code batch. Never commit this — losing it means
+# rotating the shipped public key via a new batch; leaking it means anyone can
+# mint codes the app will trust.
+.activation-keys/
+
+# Local secrets and build output
+.env
+.next/
+# Compiled worker output from `npm run worker:build`
+dist/
+tsconfig.tsbuildinfo
+.storage/
+
+# APK binaries — too large for GitHub, distributed via download route
+*.apk
+public/downloads/*.apk
+build.log

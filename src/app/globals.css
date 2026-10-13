@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-cream text-ink antialiased font-sans;
+  }
+}
+
+@layer components {
+  /* Oak-style card — warm shadow, large radius, hover lift */
+  .oak-card {
+    @apply rounded-oak bg-white shadow-warm-sm transition-all duration-200;
+  }
+  .oak-card:hover {
+    @apply shadow-warm -translate-y-0.5;
+  }
+
+  /* Oak-style section — generous padding, cream background */
+  .oak-section {
+    @apply py-16 sm:py-20 lg:py-24;
+  }
+
+  /* Oak-style badge — rounded pill, mint accent */
+  .oak-badge {
+    @apply inline-flex items-center gap-1.5 rounded-full bg-mint-100 px-3 py-1 text-xs font-medium text-mint-800;
+  }
+
+  /* Subscription status chips */
+  .sub-active {
+    @apply inline-flex items-center gap-1.5 rounded-full bg-mint-100 px-2.5 py-1 text-xs font-medium text-mint-800;
+  }
+  .sub-expiring {
+    @apply inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700;
+  }
+  .sub-expired {
+    @apply inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700;
+  }
+}
+
+@layer utilities {
+  .bg-dot-grid {
+    background-image: radial-gradient(circle, #d4d4d4 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+  /* Small uppercase monospace label — used for kickers, step numbers,
+     and other "technical" accents throughout the product. */
+  .label-mono {
+    font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .num-mono {
+    font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/*
+ * Native shell adjustments. Applied only when `html.native-app` is set by
+ * NativeBridge, so the web build is untouched.
+ */
+.native-app body {
+  /* Content runs under the status bar and the home indicator because the viewport
+     is `cover`. This puts the page back inside the safe area without shrinking
+     the background, which is what a native app looks like. */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  /* A WebView still shows the grey tap-highlight and rubber-bands the whole page
+     like a browser tab. Both read as "website" the moment a teacher taps. */
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: contain;
+}
+
+.native-app {
+  background-color: #111111;
+}

@@ -1,0 +1,138 @@
+{
+  "version": 1,
+  "issuedAt": "2026-09-24T15:31:36.660Z",
+  "codes": [
+    {
+      "code": "TRB-56RC-P8KA",
+      "months": 3,
+      "note": "pilot"
+    },
+    {
+      "code": "TRB-WJH9-8JPV",
+      "months": 3,
+      "note": "pilot"
+    },
+    {
+      "code": "TRB-5AHQ-FQ5H",
+      "months": 3,
+      "note": "pilot"
+    },
+    {
+      "code": "TRB-XXXY-75VA",
+      "months": 3,
+      "note": "pilot"
+    },
+    {
+      "code": "TRB-FK48-CVXT",
+      "months": 3,
+      "note": "pilot"
+    },
+    {
+      "code": "TRB-D9B9-98VH",
+      "months": 3,
+      "note": "pilot"
+    },
+    {
+      "code": "TRB-2CPZ-EQRN",
+      "months": 3,
+      "note": "pilot"
+    },
+    {
+      "code": "TRB-DV2N-7BHE",
+      "months": 3,
+      "note": "pilot"
+    },
+    {
+      "code": "TRB-XR8X-SUV2",
+      "months": 3,
+      "note": "pilot"
+    },
+    {
+      "code": "TRB-7AP9-M3P5",
+      "months": 3,
+      "note": "pilot"
+    },
+    {
+      "code": "TRB-D7FB-R7A3",
+      "months": 3,
+      "note": "pilot"
+    },
+    {
+      "code": "TRB-RWRX-8SYD",
+      "months": 3,
+      "note": "pilot"
+    },
+    {
+      "code": "TRB-UMF2-G859",
+      "months": 12,
+      "note": "2026-annual"
+    },
+    {
+      "code": "TRB-N7U9-CADC",
+      "months": 12,
+      "note": "2026-annual"
+    },
+    {
+      "code": "TRB-DWV3-A93N",
+      "months": 12,
+      "note": "2026-annual"
+    },
+    {
+      "code": "TRB-HXEC-R2KH",
+      "months": 12,
+      "note": "2026-annual"
+    },
+    {
+      "code": "TRB-F9U7-3GK4",
+      "months": 12,
+      "note": "2026-annual"
+    },
+    {
+      "code": "TRB-D5DJ-6XU5",
+      "months": 12,
+      "note": "2026-annual"
+    },
+    {
+      "code": "TRB-BQ6M-N3JY",
+      "months": 12,
+      "note": "2026-annual"
+    },
+    {
+      "code": "TRB-869V-GYA7",
+      "months": 12,
+      "note": "2026-annual"
+    },
+    {
+      "code": "TRB-YG4H-ZY7M",
+      "months": 3,
+      "note": "batch-2"
+    },
+    {
+      "code": "TRB-5X7R-W2E3",
+      "months": 3,
+      "note": "batch-2"
+    },
+    {
+      "code": "TRB-WNBQ-TM38",
+      "months": 3,
+      "note": "batch-2"
+    },
+    {
+      "code": "TRB-DGQE-F7BY",
+      "months": 3,
+      "note": "batch-2"
+    },
+    {
+      "code": "TRB-KKTC-Q2RJ",
+      "months": 3,
+      "note": "batch-2"
+    }
+  ],
+  "publicKey": {
+    "kty": "EC",
+    "x": "HR8DPKQwBT33B10i1FmFe1Sgmp5W6CjUEszZWhDovcA",
+    "y": "rSpHCaxphJwAj4OEjaE7PMRSFTbxTrNskounSv7D-4E",
+    "crv": "P-256"
+  },
+  "signature": "VnU_svzDwr130GxFPzmZmrJ_htUW6wLgQUN2H6EMowvVUM3ai6novI2bUYWO3VHYb_K7CswfXvgWzbBvjcYz1g"
+}
