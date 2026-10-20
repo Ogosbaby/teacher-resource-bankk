@@ -158,7 +158,148 @@ const GENERATION_BLUEPRINTS: CourseTemplate[] = [
       },
     ],
   },
+  {
+    subjectKeyword: "math",
+    level: "SSS",
+    title: "Senior Secondary Mathematics: WAEC Mastery, Quadratic Functions & Trigonometry",
+    description:
+      "A high-yield pedagogical guide to teaching SSS Mathematics. Covers quadratic equations, Circle Theorems, logarithms, and trigonometry with step-by-step WAEC marking scheme strategies.",
+    duration: 135,
+    modules: [
+      {
+        title: "Demystifying Quadratic Equations & The Quadratic Formula",
+        subtopics: ["Factoring Trinomials", "Completing the Square", "The Quadratic Formula $x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$"],
+        coreGuide: `Students often panic at the quadratic formula because of signs and order of operations.
+Teach the discriminant $\\Delta = b^2 - 4ac$ as a litmus test:
+- If $b^2 - 4ac > 0$: Two distinct real roots.
+- If $b^2 - 4ac = 0$: Exactly one real repeated root.
+- If $b^2 - 4ac < 0$: No real roots.
+
+### Chalkboard Scaffold:
+Always have students identify $a$, $b$, and $c$ explicitly with their signs (+ or -) before substituting into the equation:
+$$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$`,
+        classroomStrategy: "Sign Error Audit: Present 3 solved equations containing the most common WAEC algebraic sign errors. Have students detect and explain each mistake.",
+        formativeAssessment: "Find the discriminant of $2x^2 - 4x + 2 = 0$. What does it tell us about the roots? (0, one repeated root).",
+      },
+      {
+        title: "Circle Theorems: Visual Proofs on the Chalkboard",
+        subtopics: ["Angle at Center is Twice Angle at Circumference", "Angles in the Same Segment", "Opposite Angles in a Cyclic Quadrilateral"],
+        coreGuide: `Do not expect students to memorize 7 abstract circle theorems without visual anchors.
+Use colored chalk to highlight subtended arcs:
+- The arc $AB$ dictates every angle standing upon it.
+- Draw concentric circles or use string pinned to the board to physically demonstrate that moving the vertex anywhere along the major arc preserves the exact angle measure.`,
+        classroomStrategy: "Theorem Spotting: Project or sketch 4 complex geometric figures and ask pairs 60 seconds to identify which specific theorem unlocks the missing angle.",
+        formativeAssessment: "If $\\angle AOB = 110^\\circ$ at the center, what is $\\angle ACB$ at the circumference? ($55^\\circ$).",
+      },
+    ],
+  },
+  {
+    subjectKeyword: "science",
+    level: "SSS",
+    title: "SSS Science & Biology: Cellular Energetics, Genetics & Low-Cost Practical Improv",
+    description:
+      "Master high-stakes Senior Secondary Science concepts: photosynthesis, cellular respiration, genetics, and stoichiometry with laboratory improvisation.",
+    duration: 125,
+    modules: [
+      {
+        title: "Photosynthesis & Biochemical Energetics",
+        subtopics: ["Light-Dependent vs Light-Independent Reactions", "The Balanced Chemical Equation", "Starch Testing in Green Leaves"],
+        coreGuide: `Photosynthesis is foundational for WAEC/NECO Biology.
+Break the chemical formula down step by step:
+$$6\\text{CO}_2 + 6\\text{H}_2\\text{O} \\xrightarrow{\\text{light, chlorophyll}} \\text{C}_6\\text{H}_{12}\\text{O}_6 + 6\\text{O}_2$$
+
+### Essential Misconception Buster:
+Students often believe plants only respire at night. Emphasize that respiration is continuous ($24/7$), while photosynthesis depends on light availability.`,
+        classroomStrategy: "Leaf Starch Demonstration using ethanol in a water bath with iodine solution. Explain why dipping the leaf in boiling water stops enzymatic activity.",
+        formativeAssessment: "Ask learners: 'Why must the leaf be boiled in ethanol before applying iodine?' (To decolorize/remove chlorophyll so the blue-black color change is visible).",
+      },
+    ],
+  },
+  {
+    subjectKeyword: "english",
+    level: "SSS",
+    title: "Senior Secondary English: WAEC Continuous Writing Rubrics & Summary Extraction",
+    description:
+      "Equip senior secondary students with the exact skills required to score Distinction in WAEC/NECO Paper 1 and 2: formal register, thesis formulation, and concise summary writing.",
+    duration: 115,
+    modules: [
+      {
+        title: "WAEC Summary Writing: Identifying Core Assertions vs Illustrations",
+        subtopics: ["Stripping Examples & Modifiers", "Formulating Sentences in One's Own Words", "Avoiding Grammatical Shifts"],
+        coreGuide: `WAEC summary penalties are severe: lifting verbatim causes loss of marks, and writing more than one sentence per point loses 50%.
+Teach students the **Sieve Method**:
+1. Cross out all anecdotes, rhetorical questions, and statistics.
+2. Circle the main clause containing the author's primary assertion.
+3. Rewrite the core proposition in a single, grammatically complete sentence.`,
+        classroomStrategy: "Sentence Surgery: Give students a 70-word paragraph. Challenge them in groups to reduce it to a single 15-word grammatical sentence without losing the core message.",
+        formativeAssessment: "Have each student write one summary sentence from a short passage extract. Check that no words were directly lifted.",
+      },
+    ],
+  },
 ];
+
+/**
+ * Find a tailored course blueprint by slug (synchronous and universal).
+ */
+export function getTailoredCourseBySlug(slug: string): CPDCourse | undefined {
+  // Check localStorage if running in browser
+  if (typeof window !== "undefined") {
+    try {
+      const stored = getCustomGeneratedCourses();
+      const found = stored.find((c) => c.slug === slug || c.id === slug);
+      if (found) return found;
+    } catch {}
+  }
+
+  // Look up matching blueprint
+  for (let idx = 0; idx < GENERATION_BLUEPRINTS.length; idx++) {
+    const t = GENERATION_BLUEPRINTS[idx];
+    const candidateSlug = `tailored-${t.level.toLowerCase()}-${t.subjectKeyword}-${idx + 1}`;
+    if (
+      slug === candidateSlug ||
+      slug === `tailored-${t.level.toLowerCase()}-${t.subjectKeyword}` ||
+      slug.includes(`${t.level.toLowerCase()}-${t.subjectKeyword}`)
+    ) {
+      return {
+        id: `gen-${candidateSlug}`,
+        slug: candidateSlug,
+        title: t.title,
+        description: t.description,
+        subject: t.subjectKeyword.toUpperCase(),
+        classLevels: [t.level],
+        estimatedDurationMinutes: t.duration,
+        aiGenerated: true,
+        modules: t.modules.map((m, mIdx) => ({
+          id: `mod-${candidateSlug}-${mIdx + 1}`,
+          title: m.title,
+          contentType: "text",
+          body: `## ${m.title}
+
+### Core Curriculum Subtopics:
+${m.subtopics.map((s) => `- **${s}**`).join("\n")}
+
+---
+
+### Instructional Guide & Pedagogy:
+${m.coreGuide}
+
+---
+
+### Recommended Classroom Strategy:
+💡 *${m.classroomStrategy}*
+
+---
+
+### Formative Check for Understanding (Exit Slip):
+📝 ${m.formativeAssessment}
+`,
+        })),
+      };
+    }
+  }
+
+  return undefined;
+}
 
 /**
  * Synthesizes specialized full courses for the current teacher's profile.

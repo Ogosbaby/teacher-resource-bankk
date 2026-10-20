@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import ReactMarkdown from "react-markdown";
+import { FormattedMarkdown } from "@/components/ui/formatted-markdown";
 import { Button } from "@/components/ui";
 
 type Message = { role: "user" | "assistant"; content: string };
@@ -175,9 +175,8 @@ export function FloatingChat() {
                       {m.role === "assistant" ? (
                         m.content ? (
                           <>
-                            <div className="prose prose-sm max-w-none prose-p:my-1.5">
-                              <ReactMarkdown>{m.content}</ReactMarkdown>
-                            </div>
+                            <FormattedMarkdown content={m.content} />
+
                           </>
                         ) : (
                           isStreaming && i === messages.length - 1 && "…"

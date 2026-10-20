@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import ReactMarkdown from "react-markdown";
+import { FormattedMarkdown } from "@/components/ui/formatted-markdown";
+
+
 
 import { getDeviceToken, isModelReady } from "@/lib/offline";
 import { runWllamaInference } from "@/lib/offline/wllama-runner";
+import { generateOfflineLessonPlan } from "@/lib/offline/offline-planner";
 
 type Message = { role: "user" | "assistant"; content: string };
 type Feedback = "useful" | "needs-editing" | "incorrect" | null;
@@ -65,19 +68,50 @@ export function FullScreenChat({ open, onClose }: FullScreenChatProps) {
       }
     }
 
-    let offlineReply = "*(Offline Mode)* ";
     const q = promptText.toLowerCase();
-    if (q.includes("lesson") || q.includes("plan") || q.includes("note")) {
-      offlineReply += `Here is an instructional guide for **${promptText}**:\n\n### Recommended Lesson Structure (NERDC Aligned):\n1. **Behavioral Objectives**: By the end of 40 minutes, learners should define the core concept, identify 3 real-world examples, and solve check exercises.\n2. **Instructional Materials**: Chalkboard, diagrammatic charts, flashcards, and locally sourced realia.\n3. **Step 1: Introduction (5 mins)**: Connect topic to everyday Nigerian life.\n4. **Step 2: Core Concept (15 mins)**: Teach principles with step-by-step chalkboard demonstration.\n5. **Step 3: Guided Practice (10 mins)**: Paired pupil exercises with peer review.\n6. **Step 4: Evaluation (10 mins)**: 3-question formative assessment.\n\n*Tip: You can also open the **Lesson Planner** to format and save this note to your device!*`;
-    } else if (q.includes("assessment") || q.includes("formative") || q.includes("test") || q.includes("exam")) {
-      offlineReply += `### Formative Assessment Strategies for Large Classrooms:\n- **Exit Slips**: Hand learners a scrap paper with 1 quick question to solve before leaving.\n- **Think-Pair-Share**: 60 seconds independent thinking, 2 minutes paired discussion, then cold-call 3 pairs.\n- **Chalkboard Relays**: Groups send representatives to solve sequential steps of a problem.`;
-    } else if (q.includes("jss") || q.includes("primary") || q.includes("sss") || q.includes("course") || q.includes("teach")) {
-      offlineReply += `For your classes, check out the **Courses** tab for accredited modules in:\n- **Active Pedagogy & Large Classroom Management**\n- **Continuous Assessment & Record Keeping**\n- **Integrating Phonics & Numeracy Realia**\n\nAll courses include downloadable schemes of work and certificates upon completion.`;
-    } else {
-      offlineReply += `I am working using your device's cached curriculum knowledge. You can ask me to draft lesson notes for Primary, JSS, and SSS subjects, suggest teaching aids, or create assessment rubrics.`;
+
+    // Check if user is asking for a lesson plan or explanation of a core topic
+    const isPlan = q.includes("lesson") || q.includes("plan") || q.includes("note") || q.includes("draft") || q.includes("teach") || q.includes("explain");
+    
+    if (isPlan) {
+      try {
+        let detectedSubject = "basic science";
+        if (q.includes("math") || q.includes("algebra") || q.includes("geometry") || q.includes("fraction") || q.includes("number") || q.includes("quadratic")) {
+          detectedSubject = "mathematics";
+        } else if (q.includes("english") || q.includes("grammar") || q.includes("noun") || q.includes("essay") || q.includes("comprehension") || q.includes("peel")) {
+          detectedSubject = "english studies";
+        }
+
+        let detectedLevel = "JSS";
+        if (q.includes("primary") || q.includes("pri 1") || q.includes("pri 2") || q.includes("pri 3") || q.includes("pri 4") || q.includes("pri 5") || q.includes("pri 6")) {
+          detectedLevel = "Primary";
+        } else if (q.includes("sss") || q.includes("ss 1") || q.includes("ss 2") || q.includes("ss 3") || q.includes("waec")) {
+          detectedLevel = "SSS";
+        }
+
+        const draft = generateOfflineLessonPlan({
+          topic: promptText.replace(/draft|create|prepare|write|a 40-minute|lesson note on|lesson plan on/gi, "").trim() || promptText,
+          subject: detectedSubject,
+          gradeLevel: detectedLevel,
+        });
+
+        return `*(Offline Curriculum Mode)*\n\n# ${draft.title}\n**Subject:** ${draft.subject} | **Level:** ${draft.gradeLevel}\n\n${draft.body}\n\n---\n*💡 This note was generated completely offline from your cached Nigerian curriculum engine.*`;
+      } catch (err) {
+        console.warn("Offline planner fallback error:", err);
+      }
     }
-    return offlineReply;
+
+    if (q.includes("assessment") || q.includes("formative") || q.includes("test") || q.includes("quiz")) {
+      return `*(Offline Curriculum Mode)*\n\n### 4 High-Impact Formative Assessment Checks for Large Classrooms:\n\n1. **Thumbs Up / Sideways / Down (30 Seconds)**\n   - **Thumbs Up:** "I can explain the core formula or rule to my partner."\n   - **Thumbs Sideways:** "I understand the concept, but I need help with step 2."\n   - **Thumbs Down:** "I am confused and need a chalkboard recap."\n\n2. **Exit Slips (Scrap Paper Check)**\n   Hand each pupil a small scrap of paper with 1 specific problem (e.g. solve for $x$ in $2x + 4 = 10$). Collect as they step out.\n\n3. **Chalkboard Relay**\n   Divide the class into 4 rows. Row 1 identifies the given quantities, Row 2 selects the formula, Row 3 calculates, Row 4 verifies units.\n\n4. **Think-Pair-Share**\n   Give 60 seconds individual thinking, 90 seconds peer discussion, then cold-call 3 pairs to explain their reasoning.`;
+    }
+
+    if (q.includes("photosynthesis") || q.includes("respiration") || q.includes("science")) {
+      return `*(Offline Curriculum Mode)*\n\n### Teaching Photosynthesis in Nigerian Schools (JSS & SSS)\n\n#### The Core Chemical Equation:\n$$6\\text{CO}_2 + 6\\text{H}_2\\text{O} \\xrightarrow{\\text{sunlight, chlorophyll}} \\text{C}_6\\text{H}_{12}\\text{O}_6 + 6\\text{O}_2$$\n\n#### Everyday Classroom Analogies:\n- **Inputs (The Recipe):**\n  - Carbon Dioxide ($6\\text{CO}_2$) from atmospheric air via stomata.\n  - Water ($6\\text{H}_2\\text{O}$) absorbed by roots from soil.\n  - Sunlight absorbed by green chlorophyll pigments.\n- **Outputs (The Product):**\n  - Glucose ($\text{C}_6\\text{H}_{12}\\text{O}_6$) stored as starch (yam, cassava, maize).\n  - Oxygen ($6\\text{O}_2$) released into the atmosphere for animal respiration.\n\n#### Formative Check Question:\n*"If a plant is kept in total darkness for 48 hours, what happens to the starch in its leaves?"* (It is destarched as the plant metabolizes stored food).`;
+    }
+
+    return `*(Offline Curriculum Mode)*\n\nI am running 100% offline using your on-device Nigerian curriculum model.\n\nYou can ask me anytime to:\n- **Draft 40-minute NERDC lesson plans** for Primary, JSS, or SSS.\n- **Explain math & science equations** with step-by-step chalkboard breakdowns.\n- **Suggest low-cost teaching aids** using locally sourced Nigerian realia.\n- **Create WAEC/BECE practice questions** with marking rubrics.`;
   }
+
 
   async function sendDirectMessage(text: string) {
     const trimmed = text.trim();
@@ -251,9 +285,8 @@ export function FullScreenChat({ open, onClose }: FullScreenChatProps) {
                 >
                   {m.role === "assistant" ? (
                     m.content ? (
-                      <div className="prose prose-sm max-w-none text-ink prose-p:my-1.5 prose-headings:my-2 prose-ul:my-1 prose-li:my-0.5">
-                        <ReactMarkdown>{m.content}</ReactMarkdown>
-                      </div>
+                      <FormattedMarkdown content={m.content} />
+
                     ) : (
                       <span className="inline-flex items-center gap-1 text-warm-400">
                         <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-warm-400" />

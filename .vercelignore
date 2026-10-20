@@ -3,6 +3,7 @@ node_modules
 android
 .gradle
 *.apk
+!public/downloads/trb.apk
 dist
 build.log
 .storage

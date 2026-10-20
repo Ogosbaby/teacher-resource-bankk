@@ -49,12 +49,18 @@ export async function runWllamaInference(prompt: string): Promise<string> {
     }
     isInitializing = true;
     try {
-      // Configuration for wllama wasm assets
+      // Configuration for wllama wasm assets — local first for true 100% offline support
+      const localWasmUrl =
+        typeof window !== "undefined"
+          ? `${window.location.origin}/wasm/wllama.wasm`
+          : "/wasm/wllama.wasm";
+
       wllamaInstance = new Wllama({
-        default: "https://cdn.jsdelivr.net/npm/@wllama/wllama@3.6.1/esm/single-thread/wllama.wasm",
+        default: localWasmUrl,
       }, {
         suppressNativeLog: true,
       });
+
 
       // Stream the stored bytes from sink to create a Blob
       const chunks: Uint8Array[] = [];

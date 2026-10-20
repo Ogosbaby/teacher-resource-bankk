@@ -177,16 +177,11 @@ export default function AppActivatePage() {
               <h1 className="text-xl font-bold tracking-tight text-ink">
                 {isReady ? "Ready for Offline Teaching!" : "Downloading Offline Resources"}
               </h1>
-              <p className="mt-2 text-xs text-warm-600 leading-relaxed max-w-sm mx-auto">
-                {isReady
-                  ? "Your AI teaching engine and curriculum resources are downloaded. You can now use the app anywhere without internet."
-                  : "Downloading the on-device AI model and Nigerian curriculum so you can teach 100% offline."}
-              </p>
 
               {/* Progress Bar Card */}
               <div className="mt-6 rounded-2xl border border-warm-200 bg-warm-50/70 p-4 text-left">
                 <div className="flex items-center justify-between text-xs font-semibold text-ink">
-                  <span>Offline AI Assistant</span>
+                  <span>Downloading Resources</span>
                   <span className="font-mono text-mint-700">{progress}%</span>
                 </div>
 
@@ -205,22 +200,28 @@ export default function AppActivatePage() {
                 </div>
               </div>
 
-              {/* Action Button */}
+              {/* Action Area — only allows entering courses when download is complete */}
               <div className="mt-6">
-                <Button
-                  onClick={handleContinue}
-                  className="w-full justify-center rounded-xl bg-ink py-3 text-xs font-bold text-white shadow-md hover:bg-neutral-800"
-                >
-                  {isReady ? "Open Teacher Resource Bank →" : "Continue to Courses"}
-                </Button>
-
-                {!isReady && (
-                  <p className="mt-3 text-[11px] text-warm-400">
+                {isReady ? (
+                  <>
+                    <Button
+                      onClick={handleContinue}
+                      className="w-full justify-center rounded-xl bg-ink py-3 text-xs font-bold text-white shadow-md hover:bg-neutral-800"
+                    >
+                      Open Teacher Resource Bank →
+                    </Button>
+                    <p className="mt-3 text-[11px] text-mint-700 font-semibold">
+                      ✓ 100% Offline Ready. All curriculum and AI resources loaded.
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-[11px] text-warm-400">
                     The download continues in the background if you proceed.
                   </p>
                 )}
               </div>
             </div>
+
           ) : (
             /* Activation Code Input Phase */
             <>

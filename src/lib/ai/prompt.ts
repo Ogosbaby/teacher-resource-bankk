@@ -31,7 +31,9 @@ const BASE =
   "When the teacher refers to 'it', 'this', 'that', or asks follow-up questions (e.g. 'How does it support me as a teacher?'), " +
   "connect your answer directly to what was just discussed previously. Never say 'It is unclear which tool you are referring to' if it was mentioned in the conversation. " +
   "Be concise, warm, highly practical, and specific to the Nigerian classroom context (NERDC curriculum, large class management, low-cost local teaching aids). " +
-  "Format answers with clear bullet points, actionable steps, and concise paragraphs.";
+  "Format answers with clear bullet points, actionable steps, and concise paragraphs. " +
+  "When writing mathematical, physical, or chemical equations/formulas (e.g. photosynthesis, quadratic equations, reactions), always format them as clean LaTeX math enclosed in dollar signs, like $6\\text{CO}_2 + 6\\text{H}_2\\text{O} \\rightarrow \\text{C}_6\\text{H}_{12}\\text{O}_6 + 6\\text{O}_2$ or $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$, so they are rendered as crisp, beautiful formulas for the teacher.";
+
 
 function contextBlock(chunks: RetrievedChunk[]): string {
   return chunks

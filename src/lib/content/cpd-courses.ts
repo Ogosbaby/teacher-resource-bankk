@@ -328,15 +328,21 @@ export function getPreloadedCourses() {
   return PRELOADED_CPD_COURSES;
 }
 
+import { getTailoredCourseBySlug } from "./course-generator";
+
 /**
- * Find a single preloaded course by its slug.
+ * Find a single preloaded or tailored course by its slug.
  */
 export function getPreloadedCourseBySlug(slug: string): CPDCourse | undefined {
-  return PRELOADED_CPD_COURSES.find((c) => c.slug === slug);
+  const found = PRELOADED_CPD_COURSES.find((c) => c.slug === slug);
+  if (found) return found;
+  return getTailoredCourseBySlug(slug);
 }
 
 export function getPreloadedCourseById(id: string): CPDCourse | undefined {
-  return PRELOADED_CPD_COURSES.find((c) => c.id === id || c.slug === id);
+  const found = PRELOADED_CPD_COURSES.find((c) => c.id === id || c.slug === id);
+  if (found) return found;
+  return getTailoredCourseBySlug(id);
 }
 
 /**

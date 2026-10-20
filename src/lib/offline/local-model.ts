@@ -344,38 +344,64 @@ function runBundledTransfer(
   };
 }
 
+// Registry of active progress listeners so background downloads continue even if a page unmounts
+const activeListeners = new Set<(state: ModelState) => void>();
+let isGlobalTransferActive = false;
+
 /**
- * Start provisioning. Returns a cancel function. Safe to call twice — the second
- * call is a no-op while one is in flight or already complete.
+ * Start provisioning. Safe to call multiple times across different pages.
+ * The download continues uninterrupted in the background even if the caller unmounts.
  */
 export function provisionLocalModel(onProgress?: (state: ModelState) => void): () => void {
   if (typeof window === "undefined") return () => {};
 
-  const current = getModelState();
-  if (current.status === "ready" || current.status === "downloading") return () => {};
+  if (onProgress) {
+    activeListeners.add(onProgress);
+    onProgress(getModelState());
+  }
 
-  let cancelled = false;
+  const current = getModelState();
+  if (current.status === "ready") {
+    return () => {
+      if (onProgress) activeListeners.delete(onProgress);
+    };
+  }
+
+  // If already actively running in the background, do not restart — simply keep listening
+  if (isGlobalTransferActive) {
+    return () => {
+      if (onProgress) activeListeners.delete(onProgress);
+    };
+  }
+
+  isGlobalTransferActive = true;
   let stopTicker: null | (() => void) = null;
   let stopTransfer: null | (() => void) = null;
 
   const publish = (state: ModelState) => {
-    if (cancelled) return;
     writeEncrypted(STORAGE_KEYS.localModel, state);
-    onProgress?.(state);
+    for (const listener of Array.from(activeListeners)) {
+      try {
+        listener(state);
+      } catch (err) {
+        console.error("Error in provisioning listener:", err);
+      }
+    }
+    if (state.status === "ready" || state.status === "error") {
+      isGlobalTransferActive = false;
+    }
   };
 
   void (async () => {
     const hosted = await probeHostedModel();
-    if (cancelled) return;
 
     if (wantsTransfer(hosted)) {
       const totalBytes = hosted?.transferBytes ?? MODEL_SIZE_BYTES;
-      stopTransfer = runBundledTransfer(totalBytes, publish, () => cancelled).cancel;
+      stopTransfer = runBundledTransfer(totalBytes, publish, () => false).cancel;
       return;
     }
 
     if (hosted?.ready) {
-      // Already installed on the model host — nothing to transfer.
       const totalBytes = hosted.sizeBytes ?? MODEL_SIZE_BYTES;
       publish({
         status: "ready",
@@ -393,11 +419,10 @@ export function provisionLocalModel(onProgress?: (state: ModelState) => void): (
   })();
 
   return () => {
-    cancelled = true;
-    stopTicker?.();
-    stopTransfer?.();
+    if (onProgress) activeListeners.delete(onProgress);
   };
 }
+
 
 /**
  * Throw away a transferred model — the partial case as much as a complete one.

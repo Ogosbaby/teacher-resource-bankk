@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import ReactMarkdown from "react-markdown";
+import { FormattedMarkdown } from "@/components/ui/formatted-markdown";
 import { Badge, Button, Card, CardBody } from "@/components/ui";
 import { cn } from "@/lib/utils/cn";
 
@@ -269,10 +269,11 @@ export function CoursePlayer({
 
                     {/* Module Content - Full Width */}
                     {m.body && (
-                      <div className="prose prose-sm prose-neutral mt-4 max-w-none text-warm-900 leading-relaxed">
-                        <ReactMarkdown>{m.body}</ReactMarkdown>
+                      <div className="mt-4">
+                        <FormattedMarkdown content={m.body} />
                       </div>
                     )}
+
 
                     {/* Module Action Bar - Bottom Footer */}
                     <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-warm-100 pt-4">
