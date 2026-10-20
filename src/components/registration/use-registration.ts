@@ -57,6 +57,7 @@ export function useRegistration() {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [classLevels, setClassLevels] = useState<ClassLevel[]>([]);
   const [subjects, setSubjects] = useState<string[]>([]);
 
@@ -259,6 +260,8 @@ export function useRegistration() {
     setName,
     email,
     setEmail,
+    phone,
+    setPhone,
     classLevels,
     subjects,
     finishing,

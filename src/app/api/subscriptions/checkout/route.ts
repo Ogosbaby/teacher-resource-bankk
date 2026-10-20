@@ -14,6 +14,8 @@ const CheckoutSchema = z.object({
   email: z.string().email("Valid email is required"),
   phone: z.string().optional(),
   schoolName: z.string().optional(),
+  classLevels: z.array(z.string()).optional(),
+  subjects: z.array(z.string()).optional(),
   plan: z.string().default("term"),
   reference: z.string().optional(),
 });
@@ -30,7 +32,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { name, email, phone, schoolName, reference } = parsed.data;
+    const { name, email, phone, schoolName, classLevels, subjects, reference } = parsed.data;
     const cleanEmail = email.toLowerCase().trim();
 
     // 1. Pick a code: prefer a cryptographically signed batch code so it works 100% offline
@@ -79,7 +81,7 @@ export async function POST(req: Request) {
           amountKobo: 500000, // ₦5,000 in kobo
           status: "paid",
           paidAt: new Date(),
-          metadata: { name, email: cleanEmail, phone, schoolName, code: codeToAssign },
+          metadata: { name, email: cleanEmail, phone, schoolName, classLevels, subjects, code: codeToAssign },
         })
         .returning();
 
@@ -115,6 +117,8 @@ export async function POST(req: Request) {
       code: codeToAssign,
       email: cleanEmail,
       name,
+      classLevels: classLevels || [],
+      subjects: subjects || [],
     });
   } catch (error: any) {
     console.error("Checkout process error:", error);

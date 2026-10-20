@@ -5,13 +5,7 @@ import { Pill, StepActions } from "./primitives";
 import type { SubjectSection } from "./subject-sections";
 
 /**
- * Step 3 — subjects, filtered to the class levels chosen in Step 2.
- *
- * The list is never a fixed catalogue: it is `getSubjectsForLevels(levels)`, so
- * nothing from an unselected level can appear. When the teacher selected more
- * than one level, each pill carries its level as a suffix and the sections break
- * by level — otherwise "Mathematics" would appear twice with no explanation of
- * why, or worse, look like a duplicate.
+ * Step 3 — Subjects (Multi-select, filtered by chosen Class Levels).
  */
 export function StepSubjects({
   sections,
@@ -34,22 +28,55 @@ export function StepSubjects({
 }) {
   const multiLevel = classLevels.length > 1;
 
+  // Flatten all available subject IDs
+  const allIds = sections.flatMap((sec) => sec.items.map((it) => it.id));
+  const allSelected = allIds.length > 0 && allIds.every((id) => selected.includes(id));
+
+  function handleToggleAll() {
+    if (allSelected) {
+      // Deselect all
+      allIds.forEach((id) => {
+        if (selected.includes(id)) onToggle(id);
+      });
+    } else {
+      // Select all
+      allIds.forEach((id) => {
+        if (!selected.includes(id)) onToggle(id);
+      });
+    }
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 text-left">
+      <div className="flex items-center justify-between px-1">
+        <span className="text-xs font-semibold text-ink">
+          {selected.length === 0
+            ? "Tap to select your subjects:"
+            : `${selected.length} subject${selected.length === 1 ? "" : "s"} chosen`}
+        </span>
+        {totalCount > 0 && (
+          <button
+            type="button"
+            onClick={handleToggleAll}
+            className="text-xs font-semibold text-mint-700 hover:text-mint-800 underline transition-colors"
+          >
+            {allSelected ? "Deselect All" : "Select All"}
+          </button>
+        )}
+      </div>
+
       {totalCount === 0 ? (
-        // Reachable only if Step 2 was skipped, but the empty state is real and
-        // says what to do rather than showing a blank box.
-        <div className="rounded-lg border border-dashed border-neutral-300 p-8 text-center">
-          <p className="text-sm font-medium text-neutral-700">No subjects to show yet</p>
-          <p className="mx-auto mt-1 max-w-xs text-xs text-neutral-400">
-            Pick at least one class level and we&apos;ll list the subjects that belong to it.
+        <div className="rounded-2xl border border-dashed border-warm-300 p-8 text-center bg-warm-50/50">
+          <p className="text-sm font-semibold text-ink">No subjects to display</p>
+          <p className="mx-auto mt-1 max-w-xs text-xs text-warm-500">
+            Please go back and pick at least one class level.
           </p>
         </div>
       ) : (
-        <div className="max-h-72 space-y-4 overflow-y-auto p-1">
+        <div className="max-h-80 space-y-4 overflow-y-auto rounded-2xl border border-warm-200 bg-warm-50/30 p-3.5 scrollbar-thin">
           {sections.map((section) => (
-            <div key={section.heading}>
-              <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-neutral-400">
+            <div key={section.heading} className="space-y-2">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-warm-500">
                 {section.heading}
               </p>
               <div className="flex flex-wrap gap-2">
@@ -67,16 +94,14 @@ export function StepSubjects({
         </div>
       )}
 
-      <p className="text-center text-xs text-neutral-400">
-        {selected.length === 0
-          ? "Tap all the subjects you teach"
-          : `${selected.length} subject${selected.length === 1 ? "" : "s"} selected`}
-      </p>
-
-      {error && <p className="text-center text-sm text-red-600">{error}</p>}
+      {error && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-700 text-center">
+          {error}
+        </div>
+      )}
 
       <StepActions
-        nextLabel="Continue"
+        nextLabel="Continue to Activation →"
         onBack={onBack}
         onNext={onContinue}
         nextDisabled={totalCount === 0}

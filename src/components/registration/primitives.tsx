@@ -11,13 +11,13 @@ export const STEP_LABELS = ["Account", "Class levels", "Subjects", "Activate"];
  * away from its position in the flow.
  */
 export const STEP_COPY: Record<number, { title: string; subtitle: string }> = {
-  1: { title: "Let's get you set up", subtitle: "Your details stay on this device." },
+  1: { title: "Teacher Registration", subtitle: "Enter your contact details to get started." },
   2: {
     title: "What levels do you teach?",
-    subtitle: "Select all that apply — this decides which subjects you see next.",
+    subtitle: "Select all that apply — you can choose multiple class levels.",
   },
-  3: { title: "What subjects do you teach?", subtitle: "Showing subjects for the levels you picked." },
-  4: { title: "Activate your term pass", subtitle: "Pay per term or enter an activation code." },
+  3: { title: "What subjects do you teach?", subtitle: "Showing subjects tailored to your chosen levels." },
+  4: { title: "Activate Your Term Pass", subtitle: "₦5,000 for 3 months unlimited offline access across all subjects." },
 };
 
 export function CheckIcon({ className }: { className?: string }) {
@@ -49,10 +49,10 @@ export function Pill({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+      className={`rounded-xl border px-3.5 py-1.5 text-xs font-semibold transition-all active:scale-95 ${
         active
-          ? "border-ink bg-ink text-white"
-          : "border-neutral-300 bg-white text-neutral-700 hover:border-neutral-500"
+          ? "border-ink bg-ink text-white shadow-2xs"
+          : "border-warm-200 bg-white text-warm-700 hover:border-warm-300 hover:bg-warm-50/60"
       }`}
     >
       {label}
