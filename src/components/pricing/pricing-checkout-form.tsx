@@ -82,31 +82,33 @@ export function PricingCheckoutForm() {
         amount: 5000 * 100, // ₦5,000 in kobo
         currency: "NGN",
         ref: reference,
-        callback: async (response) => {
+        callback: function (response) {
           // Payment confirmed by Paystack!
-          try {
-            await fetch("/api/subscriptions/checkout", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                name: cleanName,
-                email: cleanEmail,
-                phone: phone.trim(),
-                reference: response.reference,
-              }),
-            });
+          void (async () => {
+            try {
+              await fetch("/api/subscriptions/checkout", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  name: cleanName,
+                  email: cleanEmail,
+                  phone: phone.trim(),
+                  reference: response.reference,
+                }),
+              });
 
-            // Redirect to payment success page ONLY after successful payment!
-            router.push(
-              `/payment-success?status=paid&name=${encodeURIComponent(cleanName)}&email=${encodeURIComponent(cleanEmail)}`
-            );
-          } catch {
-            router.push(
-              `/payment-success?status=paid&name=${encodeURIComponent(cleanName)}&email=${encodeURIComponent(cleanEmail)}`
-            );
-          }
+              // Redirect to payment success page ONLY after successful payment!
+              router.push(
+                `/payment-success?status=paid&name=${encodeURIComponent(cleanName)}&email=${encodeURIComponent(cleanEmail)}`
+              );
+            } catch {
+              router.push(
+                `/payment-success?status=paid&name=${encodeURIComponent(cleanName)}&email=${encodeURIComponent(cleanEmail)}`
+              );
+            }
+          })();
         },
-        onClose: () => {
+        onClose: function () {
           setLoading(false);
         },
       });
