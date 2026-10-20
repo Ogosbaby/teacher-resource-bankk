@@ -40,8 +40,14 @@ export async function POST(req: NextRequest) {
   const retrieval = await retrieveContext(message);
   const systemPrompt = buildSystemPrompt(retrieval);
 
+  // Fallback history for unauthenticated/transient sessions: ensure current message is included
+  const messagesToSend =
+    history.length > 0
+      ? [systemPrompt, ...history]
+      : [systemPrompt, { role: "user" as const, content: message }];
+
   const ai = getAIProvider();
-  const stream = ai.streamChat([systemPrompt, ...history]);
+  const stream = ai.streamChat(messagesToSend);
 
   const encoder = new TextEncoder();
   let fullResponse = "";
