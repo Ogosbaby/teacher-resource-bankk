@@ -127,9 +127,9 @@ export function StepActivate({
               // Save local unlock if needed
               onFinish(assignedCode);
 
-              // Redirect to payment success page with activation code
+              // Redirect to payment success page without exposing activation code on the web
               router.push(
-                `/payment-success?status=paid&code=${encodeURIComponent(assignedCode)}&name=${encodeURIComponent(cleanName)}&email=${encodeURIComponent(cleanEmail)}`
+                `/payment-success?status=paid&name=${encodeURIComponent(cleanName)}&email=${encodeURIComponent(cleanEmail)}`
               );
             } catch (e) {
               onFinish(response.reference);
@@ -175,7 +175,7 @@ export function StepActivate({
         setValidatingCode(false);
         onFinish(cleanCode);
         router.push(
-          `/payment-success?status=activated&code=${encodeURIComponent(cleanCode)}&name=${encodeURIComponent(name)}`
+          `/payment-success?status=activated&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`
         );
         return;
       }
@@ -187,7 +187,7 @@ export function StepActivate({
       if (offlineResult.ok) {
         onFinish(cleanCode);
         router.push(
-          `/payment-success?status=activated&code=${encodeURIComponent(cleanCode)}&name=${encodeURIComponent(name)}`
+          `/payment-success?status=activated&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`
         );
       } else {
         setCodeError("Invalid or already redeemed activation code. Please check and try again.");

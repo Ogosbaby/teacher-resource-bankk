@@ -17,6 +17,7 @@ import {
   provisionLocalModel,
   redeemActivationCode,
   registerDevice,
+  saveTeacherProfile,
   syncTermPassWithServer,
   type ModelState,
 } from "@/lib/offline";
@@ -62,6 +63,8 @@ export default function AppActivatePage() {
       const { getDeviceId } = await import("@/lib/offline/device");
       const deviceId = getDeviceId();
 
+      let serverTeacher: any = null;
+
       // Check with server registry if online to guarantee single-use across all devices
       try {
         const claimRes = await fetch("/api/activation/validate-and-claim", {
@@ -83,6 +86,13 @@ export default function AppActivatePage() {
           setError(json.error || "Activation code is invalid or has expired.");
           return;
         }
+
+        if (claimRes.ok) {
+          const claimData = await claimRes.json().catch(() => null);
+          if (claimData?.teacher) {
+            serverTeacher = claimData.teacher;
+          }
+        }
       } catch {
         // If device has no internet connection, proceed with local cryptographic verification
       }
@@ -100,7 +110,19 @@ export default function AppActivatePage() {
       clearDraft();
       clearTermPassRevocation();
 
-      // 2. Sync term pass with cloud in background
+      // 2. Persist the teacher's registered profile (name, class levels, subjects)
+      if (serverTeacher) {
+        saveTeacherProfile({
+          name: serverTeacher.name || "Teacher",
+          email: serverTeacher.email || "",
+          phone: serverTeacher.phone || "",
+          schoolName: serverTeacher.schoolName || "",
+          classLevels: serverTeacher.classLevels?.length ? serverTeacher.classLevels : ["JSS"],
+          subjects: serverTeacher.subjects?.length ? serverTeacher.subjects : ["jss_maths", "jss_english"],
+        });
+      }
+
+      // 3. Sync term pass with cloud in background
       void syncTermPassWithServer();
 
       // 3. Switch to downloading resources view

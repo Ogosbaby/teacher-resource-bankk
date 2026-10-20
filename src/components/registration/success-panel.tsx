@@ -40,8 +40,7 @@ export function SuccessPanel({
               Welcome, {firstName}!
             </h1>
             <p className="mt-2 text-sm text-neutral-600">
-              Your term pass is active.
-              {granted.code ? ` Activated with ${granted.code}.` : " Access unlocked for your academic term."}
+              Your term pass is active. Access unlocked for your academic term.
             </p>
           </div>
 

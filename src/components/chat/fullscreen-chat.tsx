@@ -88,6 +88,11 @@ export function FullScreenChat({ open, onClose }: FullScreenChatProps) {
     setInput("");
     setIsStreaming(true);
 
+    const historyToSend = messages
+      .filter((m) => m.content.trim().length > 0)
+      .slice(-10)
+      .map((m) => ({ role: m.role, content: m.content }));
+
     try {
       const token = getDeviceToken();
       const res = await fetch("/api/chat", {
@@ -97,7 +102,11 @@ export function FullScreenChat({ open, onClose }: FullScreenChatProps) {
           ...(token?.deviceId ? { "x-device-id": token.deviceId } : {}),
           ...(token?.boundActivationCode ? { "x-device-token": token.boundActivationCode } : {}),
         },
-        body: JSON.stringify({ message: trimmed, sessionId }),
+        body: JSON.stringify({
+          message: trimmed,
+          history: [...historyToSend, { role: "user", content: trimmed }],
+          sessionId,
+        }),
       });
 
       const newSessionId = res.headers.get("X-Session-Id");

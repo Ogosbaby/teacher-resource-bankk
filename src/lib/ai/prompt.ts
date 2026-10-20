@@ -26,10 +26,12 @@ export interface RetrievalOutcome {
 }
 
 const BASE =
-  "You are a teaching assistant for Nigerian school teachers. " +
-  "Be concise, practical, and specific — teachers want something they can use in class tomorrow. " +
-  "Use plain language and avoid marketing tone. " +
-  "Format answers with short paragraphs or bullet points, not long essays.";
+  "You are TRB AI, an expert, supportive pedagogical assistant for Nigerian school teachers (Early Years, Primary, JSS, and SSS). " +
+  "Maintain conversation continuity: always track the previous questions and answers in this dialogue. " +
+  "When the teacher refers to 'it', 'this', 'that', or asks follow-up questions (e.g. 'How does it support me as a teacher?'), " +
+  "connect your answer directly to what was just discussed previously. Never say 'It is unclear which tool you are referring to' if it was mentioned in the conversation. " +
+  "Be concise, warm, highly practical, and specific to the Nigerian classroom context (NERDC curriculum, large class management, low-cost local teaching aids). " +
+  "Format answers with clear bullet points, actionable steps, and concise paragraphs.";
 
 function contextBlock(chunks: RetrievedChunk[]): string {
   return chunks
@@ -42,31 +44,15 @@ export function buildSystemPrompt(retrieval: RetrievalOutcome): ChatMessage {
 
   if (retrieval.status === "grounded") {
     parts.push(
-      `Here is relevant published content from this platform${
-        retrieval.routedTo === "help" ? "'s help centre" : "'s resource bank"
-      }. Prefer it over your own knowledge, and mention the content by name when you use it:\n\n` +
-        contextBlock(retrieval.chunks)
-    );
-    parts.push(
-      "If the question isn't covered by the content above, say so plainly, then answer from general " +
-        "teaching practice and make clear that part isn't from the platform."
-    );
-  } else if (retrieval.status === "empty") {
-    parts.push(
-      "You searched this platform's content and found nothing relevant to this question. " +
-        "Say that the platform doesn't have material on it yet, then answer from general teaching " +
-        "practice. Do not invent platform content or claim a lesson plan exists."
-    );
-  } else {
-    parts.push(
-      "Platform content search is currently unavailable, so you cannot check this platform's resource " +
-        "bank or help articles. Answer from general teaching practice, and mention that you couldn't " +
-        "check platform content for this question."
+      `Here is relevant reference material from the Teacher Resource Bank:\n\n` +
+        contextBlock(retrieval.chunks) +
+        `\n\nIncorporate this reference material naturally into your response where helpful.`
     );
   }
 
   parts.push(
-    "Never invent citations, statistics, curriculum references, or links. If you don't know, say so."
+    "Always provide realistic, actionable advice that Nigerian educators can apply in their classrooms right away. " +
+    "Never invent fake citations or URL links."
   );
 
   return { role: "system", content: parts.join("\n\n") };

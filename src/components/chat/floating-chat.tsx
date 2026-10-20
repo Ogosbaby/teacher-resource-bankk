@@ -36,11 +36,20 @@ export function FloatingChat() {
     setIsStreaming(true);
     setNeedsAuth(false);
 
+    const historyToSend = messages
+      .filter((m) => m.content.trim().length > 0)
+      .slice(-10)
+      .map((m) => ({ role: m.role, content: m.content }));
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMessage.content, sessionId }),
+        body: JSON.stringify({
+          message: userMessage.content,
+          history: [...historyToSend, { role: "user", content: userMessage.content }],
+          sessionId,
+        }),
       });
 
       if (res.status === 401) {

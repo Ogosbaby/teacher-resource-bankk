@@ -100,13 +100,14 @@ export async function POST(req: Request) {
 
     // 3. Send email to user with their activation code
     try {
-      await sendActivationCodeEmail({
+      const emailResult = await sendActivationCodeEmail({
         to: cleanEmail,
         customerName: name,
         code: codeToAssign,
         months: 3,
         orderReference: orderRef,
       });
+      console.log(`[checkout] Email dispatch to ${cleanEmail}:`, emailResult);
     } catch (emailErr) {
       console.warn("[checkout] Email dispatch error:", emailErr);
     }

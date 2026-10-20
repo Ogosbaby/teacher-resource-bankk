@@ -12,9 +12,10 @@ import {
 export async function POST(req: NextRequest) {
   const session = await auth();
 
-  const { message, sessionId } = (await req.json()) as {
+  const { message, sessionId, history: clientHistory } = (await req.json()) as {
     message: string;
     sessionId?: string;
+    history?: { role: "user" | "assistant"; content: string }[];
   };
 
   if (!message || typeof message !== "string") {
@@ -40,11 +41,26 @@ export async function POST(req: NextRequest) {
   const retrieval = await retrieveContext(message);
   const systemPrompt = buildSystemPrompt(retrieval);
 
-  // Fallback history for unauthenticated/transient sessions: ensure current message is included
-  const messagesToSend =
-    history.length > 0
-      ? [systemPrompt, ...history]
-      : [systemPrompt, { role: "user" as const, content: message }];
+  // Form conversation history: prefer clientHistory (APK/client memory) or server session history
+  let conversation: { role: "user" | "assistant"; content: string }[] = [];
+  if (Array.isArray(clientHistory) && clientHistory.length > 0) {
+    conversation = clientHistory.filter(
+      (m) => (m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content.trim().length > 0
+    );
+  } else if (history.length > 0) {
+    conversation = history
+      .filter((m) => m.role === "user" || m.role === "assistant")
+      .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+  }
+
+  // Ensure the current user message is at the end of the conversation
+  if (conversation.length === 0 || conversation[conversation.length - 1].content !== message) {
+    conversation.push({ role: "user", content: message });
+  }
+
+  // Include up to the last 12 messages for full contextual memory
+  const recentConversation = conversation.slice(-12);
+  const messagesToSend = [systemPrompt, ...recentConversation];
 
   const ai = getAIProvider();
   const stream = ai.streamChat(messagesToSend);

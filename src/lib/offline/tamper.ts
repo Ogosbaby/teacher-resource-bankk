@@ -20,6 +20,8 @@ export interface ClockTamperState {
 export interface TeacherProfile {
   name: string;
   email: string;
+  phone?: string;
+  schoolName?: string;
   classLevels: ClassLevel[];
   subjects: string[];
   savedAt: number;
@@ -91,12 +93,16 @@ export function resolveClockTamper(verifiedServerTime?: number): void {
 export function saveTeacherProfile(profile: {
   name: string;
   email?: string;
+  phone?: string;
+  schoolName?: string;
   classLevels: ClassLevel[];
   subjects: string[];
 }): TeacherProfile {
   const record: TeacherProfile = {
     name: profile.name,
     email: profile.email ?? "",
+    phone: profile.phone,
+    schoolName: profile.schoolName,
     classLevels: profile.classLevels,
     subjects: profile.subjects,
     savedAt: Date.now(),

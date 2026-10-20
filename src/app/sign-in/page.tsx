@@ -18,6 +18,7 @@ import {
   provisionLocalModel,
   redeemActivationCode,
   registerDevice,
+  saveTeacherProfile,
   syncTermPassWithServer,
 } from "@/lib/offline";
 
@@ -57,6 +58,20 @@ export default function SignInPage() {
 
     setCodeLoading(true);
     try {
+      let serverTeacher: any = null;
+      try {
+        const { getDeviceId } = await import("@/lib/offline/device");
+        const claimRes = await fetch("/api/activation/validate-and-claim", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: cleaned, deviceId: getDeviceId() }),
+        });
+        if (claimRes.ok) {
+          const data = await claimRes.json().catch(() => null);
+          if (data?.teacher) serverTeacher = data.teacher;
+        }
+      } catch {}
+
       const result = await redeemActivationCode(cleaned);
       if (!result.ok) {
         setCodeLoading(false);
@@ -76,6 +91,17 @@ export default function SignInPage() {
       registerDevice(result.code ?? cleaned);
       clearDraft();
       clearTermPassRevocation();
+
+      if (serverTeacher) {
+        saveTeacherProfile({
+          name: serverTeacher.name || "Teacher",
+          email: serverTeacher.email || "",
+          phone: serverTeacher.phone || "",
+          schoolName: serverTeacher.schoolName || "",
+          classLevels: serverTeacher.classLevels?.length ? serverTeacher.classLevels : ["JSS"],
+          subjects: serverTeacher.subjects?.length ? serverTeacher.subjects : ["jss_maths", "jss_english"],
+        });
+      }
 
       // Trigger model download and background sync
       provisionLocalModel();

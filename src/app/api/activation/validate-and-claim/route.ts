@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
-import { activationCodes, devices } from "@/lib/db/schema";
+import { activationCodes, devices, orders, customers } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { normaliseCode } from "@/lib/offline/device";
 import { SHIPPED_BATCH, isShippedBatchTrusted, isValidCodeFormat } from "@/lib/offline/activation-batch";
@@ -21,6 +21,7 @@ const bodySchema = z.object({
  * 1. A code that has been activated by any user/device cannot ever be redeemed by another device.
  * 2. If the code is already bound to this exact deviceId, it succeeds idempotently.
  * 3. If bound to any other deviceId, it is rejected with 409 "This activation code has already been activated by another user".
+ * 4. Returns the teacher profile (name, class levels, subjects) associated with the order/registration.
  */
 export async function POST(req: Request) {
   const parsed = bodySchema.safeParse(await req.json().catch(() => null));
@@ -76,6 +77,53 @@ export async function POST(req: Request) {
         );
       }
 
+      // Look up attached order / customer metadata to return the teacher's profile
+      let teacherProfile: {
+        name: string;
+        email: string;
+        phone?: string | null;
+        schoolName?: string | null;
+        classLevels: string[];
+        subjects: string[];
+      } | null = null;
+
+      if (existing.orderId) {
+        try {
+          const [order] = await db.select().from(orders).where(eq(orders.id, existing.orderId)).limit(1);
+          if (order && order.metadata) {
+            const meta = order.metadata as any;
+            teacherProfile = {
+              name: meta.name || "",
+              email: meta.email || existing.deliveredTo || "",
+              phone: meta.phone || null,
+              schoolName: meta.schoolName || null,
+              classLevels: Array.isArray(meta.classLevels) ? meta.classLevels : ["JSS"],
+              subjects: Array.isArray(meta.subjects) ? meta.subjects : ["jss_maths", "jss_english"],
+            };
+          }
+        } catch (e) {
+          console.warn("[validate-and-claim] Error fetching order metadata:", e);
+        }
+      }
+
+      if (!teacherProfile && existing.customerId) {
+        try {
+          const [cust] = await db.select().from(customers).where(eq(customers.id, existing.customerId)).limit(1);
+          if (cust) {
+            teacherProfile = {
+              name: cust.fullName || "Teacher",
+              email: cust.email || existing.deliveredTo || "",
+              phone: cust.phone || null,
+              schoolName: cust.schoolName || null,
+              classLevels: ["JSS"],
+              subjects: ["jss_maths", "jss_english"],
+            };
+          }
+        } catch (e) {
+          console.warn("[validate-and-claim] Error fetching customer profile:", e);
+        }
+      }
+
       // If bound to this same device, succeed idempotently
       if (existing.boundDeviceId === deviceId) {
         return NextResponse.json({
@@ -83,6 +131,7 @@ export async function POST(req: Request) {
           code,
           months: existing.durationMonths || durationMonths,
           message: "Activation restored for this device.",
+          teacher: teacherProfile,
         });
       }
 
@@ -102,6 +151,7 @@ export async function POST(req: Request) {
         ok: true,
         code,
         months: existing.durationMonths || durationMonths,
+        teacher: teacherProfile,
       });
     }
 
