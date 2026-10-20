@@ -73,7 +73,7 @@ export function PricingCheckoutForm() {
 
       const paystackKey =
         process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY ||
-        "pk_test_b8e5c3c0ef0e451475727932c0282142278e8584";
+        "pk_test_3847075c459ab42bea6c62592feb7ab2babef104";
       const reference = `TRB_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
 
       const handler = window.PaystackPop.setup({
