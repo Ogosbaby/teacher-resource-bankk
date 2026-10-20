@@ -14,6 +14,7 @@
  * knows whether a failed send should be retried.
  */
 import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
 export interface OutboundEmail {
   to: string;
@@ -28,36 +29,72 @@ export type EmailResult =
   | { status: "failed"; error: string };
 
 export function isEmailConfigured(): boolean {
-  return Boolean(process.env.RESEND_API_KEY?.trim());
+  return Boolean(
+    process.env.RESEND_API_KEY?.trim() ||
+      (process.env.SMTP_USER?.trim() && process.env.SMTP_PASS?.trim())
+  );
 }
 
 /**
  * The From header.
- *
- * Defaults to Resend's shared sender, which works without a verified domain but
- * only delivers to the address that owns the account — enough to test the
- * integration. Set `REMINDER_FROM_EMAIL` to a verified domain address for real
- * sending.
  */
 export function emailFromAddress(): string {
+  if (process.env.SMTP_USER?.trim()) {
+    return process.env.REMINDER_FROM_EMAIL?.trim() || `Teacher Resource Bank <${process.env.SMTP_USER.trim()}>`;
+  }
   return process.env.REMINDER_FROM_EMAIL?.trim() || "Teacher Resource Bank <onboarding@resend.dev>";
 }
 
-let client: Resend | null = null;
+let resendClient: Resend | null = null;
 
-function getClient(): Resend | null {
+function getResendClient(): Resend | null {
   const key = process.env.RESEND_API_KEY?.trim();
   if (!key) return null;
-  // Lazily constructed so importing this module (in a route, a job or a script)
-  // never requires a key to exist.
-  if (!client) client = new Resend(key);
-  return client;
+  if (!resendClient) resendClient = new Resend(key);
+  return resendClient;
+}
+
+function getSmtpTransporter() {
+  const user = process.env.SMTP_USER?.trim();
+  const pass = process.env.SMTP_PASS?.trim();
+  if (!user || !pass) return null;
+
+  const host = process.env.SMTP_HOST?.trim() || "smtp.gmail.com";
+  const port = parseInt(process.env.SMTP_PORT?.trim() || "465", 10);
+  const secure = port === 465;
+
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    auth: { user, pass },
+  });
 }
 
 export async function sendEmail(message: OutboundEmail): Promise<EmailResult> {
-  const resend = getClient();
+  // 1. Prefer SMTP if configured (no sandbox restriction to single recipient)
+  const smtp = getSmtpTransporter();
+  if (smtp) {
+    try {
+      const info = await smtp.sendMail({
+        from: emailFromAddress(),
+        to: message.to,
+        subject: message.subject,
+        html: message.html,
+        text: message.text,
+      });
+      console.log(`[email] Delivered via SMTP to ${message.to}, messageId:`, info.messageId);
+      return { status: "sent", id: info.messageId };
+    } catch (smtpErr) {
+      console.error("[email] SMTP error:", smtpErr);
+      return { status: "failed", error: smtpErr instanceof Error ? smtpErr.message : String(smtpErr) };
+    }
+  }
+
+  // 2. Resend provider
+  const resend = getResendClient();
   if (!resend) {
-    return { status: "skipped", reason: "RESEND_API_KEY is not set" };
+    return { status: "skipped", reason: "Neither RESEND_API_KEY nor SMTP credentials are set." };
   }
 
   try {
@@ -70,10 +107,13 @@ export async function sendEmail(message: OutboundEmail): Promise<EmailResult> {
     });
 
     if (error) {
+      console.warn(`[email] Resend delivery to ${message.to} failed:`, error.message);
       return { status: "failed", error: error.message || JSON.stringify(error) };
     }
+    console.log(`[email] Delivered via Resend to ${message.to}, id:`, data?.id);
     return { status: "sent", id: data?.id ?? null };
   } catch (err) {
+    console.error("[email] Resend exception:", err);
     return { status: "failed", error: err instanceof Error ? err.message : String(err) };
   }
 }
