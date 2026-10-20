@@ -31,6 +31,21 @@ export function FullScreenChat({ open, onClose }: FullScreenChatProps) {
   }, [open]);
 
   useEffect(() => {
+    function handleOpenEvent(e: Event) {
+      const custom = e as CustomEvent<{ prompt?: string }>;
+      if (custom.detail?.prompt) {
+        setInput(custom.detail.prompt);
+        // Automatically dispatch prompt after dialog opens
+        setTimeout(() => {
+          sendDirectMessage(custom.detail.prompt!);
+        }, 300);
+      }
+    }
+    window.addEventListener("trb:open-chat", handleOpenEvent);
+    return () => window.removeEventListener("trb:open-chat", handleOpenEvent);
+  }, []);
+
+  useEffect(() => {
     if (open) {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
@@ -64,8 +79,8 @@ export function FullScreenChat({ open, onClose }: FullScreenChatProps) {
     return offlineReply;
   }
 
-  async function sendMessage() {
-    const trimmed = input.trim();
+  async function sendDirectMessage(text: string) {
+    const trimmed = text.trim();
     if (!trimmed || isStreaming) return;
 
     const userMessage: Message = { role: "user", content: trimmed };
@@ -103,30 +118,17 @@ export function FullScreenChat({ open, onClose }: FullScreenChatProps) {
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      let hasReadChunk = false;
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        hasReadChunk = true;
         const chunk = decoder.decode(value, { stream: true });
         setMessages((prev) => {
           const updated = [...prev];
+          const last = updated[updated.length - 1];
           updated[updated.length - 1] = {
             role: "assistant",
-            content: updated[updated.length - 1].content + chunk,
-          };
-          return updated;
-        });
-      }
-
-      if (!hasReadChunk) {
-        const fallback = await getOfflineReply(trimmed);
-        setMessages((prev) => {
-          const updated = [...prev];
-          updated[updated.length - 1] = {
-            role: "assistant",
-            content: fallback,
+            content: (last?.content || "") + chunk,
           };
           return updated;
         });
@@ -144,6 +146,10 @@ export function FullScreenChat({ open, onClose }: FullScreenChatProps) {
     } finally {
       setIsStreaming(false);
     }
+  }
+
+  async function sendMessage() {
+    await sendDirectMessage(input);
   }
 
   return (

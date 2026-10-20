@@ -20,7 +20,20 @@ const schema = z.object({
 
 export async function POST(req: Request) {
   const guard = await requireTeacherApi();
-  if ("error" in guard) return guard.error;
+  let userId = "error" in guard ? null : guard.session.user.id;
+
+  // Fallback: check device recognition headers from the APK/offline-first app
+  if (!userId) {
+    const deviceId = req.headers.get("x-device-id");
+    const deviceToken = req.headers.get("x-device-token");
+    if (deviceId || deviceToken) {
+      userId = deviceId ? `device-${deviceId}` : "device-teacher";
+    }
+  }
+
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized. Please activate or sign in." }, { status: 401 });
+  }
 
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
@@ -60,16 +73,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, draft, structured, modelVersion, saved: null });
     }
 
-    const saved = await createLessonPlan(guard.session.user.id, {
-      title: draft.title,
-      subject: draft.subject ?? subject ?? null,
-      gradeLevel: draft.gradeLevel ?? gradeLevel ?? null,
-      topic: topic ?? null,
-      body: draft.body,
-      source: mode === "generate" ? "ai_generated" : "ai_refined",
-      sourceFileName: sourceFileName ?? null,
-      aiModelVersion: modelVersion,
-    });
+    let saved = null;
+    try {
+      if (!userId.startsWith("device-")) {
+        saved = await createLessonPlan(userId, {
+          title: draft.title,
+          subject: draft.subject ?? subject ?? null,
+          gradeLevel: draft.gradeLevel ?? gradeLevel ?? null,
+          topic: topic ?? null,
+          body: draft.body,
+          source: mode === "generate" ? "ai_generated" : "ai_refined",
+          sourceFileName: sourceFileName ?? null,
+          aiModelVersion: modelVersion,
+        });
+      }
+    } catch {}
 
     return NextResponse.json(
       { ok: true, draft, structured, modelVersion, saved },

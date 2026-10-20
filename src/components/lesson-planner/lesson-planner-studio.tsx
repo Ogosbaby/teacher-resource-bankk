@@ -373,20 +373,35 @@ export function LessonPlannerStudio({ userName }: { userName?: string }) {
         {/* Draft preview / editor */}
         {preview && (
           <div className="rounded-oak bg-white p-6 shadow-warm-sm">
-            <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-warm-100 pb-4">
               <div className="flex items-center gap-2">
-                <Badge variant="ai">AI</Badge>
-                <h2 className="font-semibold text-ink">{preview.title}</h2>
+                <Badge variant="ai">NERDC Aligned</Badge>
+                <h2 className="text-lg font-bold text-ink">{preview.title}</h2>
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
                 {!editing ? (
-                  <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-                    Edit
-                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => setEditing(true)}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-warm-300 bg-warm-50 px-3 py-1.5 text-xs font-bold text-ink hover:bg-warm-100 transition-colors shadow-sm"
+                    title="Edit Lesson Plan"
+                  >
+                    <span>✏️</span>
+                    <span>Edit</span>
+                  </button>
                 ) : (
-                  <Button size="sm" onClick={saveEdits} isLoading={busy}>
-                    Save changes
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditing(false)}
+                      className="rounded-xl border border-warm-300 px-3 py-1.5 text-xs font-semibold text-warm-700 hover:bg-warm-50"
+                    >
+                      Cancel
+                    </button>
+                    <Button size="sm" onClick={saveEdits} isLoading={busy}>
+                      Save Changes
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>

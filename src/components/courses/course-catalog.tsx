@@ -40,9 +40,10 @@ function durationLabel(mins: number | null) {
 }
 
 import { getTeacherProfile, loadDraft, type TeacherProfile } from "@/lib/offline";
+import { getCustomGeneratedCourses } from "@/lib/content/course-generator";
 
 export function CourseCatalog({
-  courses,
+  courses: initialCourses,
   basePath = "/courses",
 }: {
   courses: CatalogCourse[];
@@ -52,6 +53,7 @@ export function CourseCatalog({
   const [subject, setSubject] = useState<string | null>(null);
   const [sort, setSort] = useState<SortKey>("newest");
   const [profile, setProfile] = useState<TeacherProfile | null>(null);
+  const [courses, setCourses] = useState<CatalogCourse[]>(initialCourses);
 
   useEffect(() => {
     const prof = getTeacherProfile();
@@ -69,7 +71,27 @@ export function CourseCatalog({
         });
       }
     }
-  }, []);
+
+    // Load any locally generated tailored courses
+    const custom = getCustomGeneratedCourses();
+    if (custom.length > 0) {
+      const customFormatted: CatalogCourse[] = custom.map((c) => ({
+        id: c.id,
+        title: c.title,
+        slug: c.slug,
+        description: c.description,
+        coverImageUrl: c.coverImageUrl ?? null,
+        estimatedDurationMinutes: c.estimatedDurationMinutes,
+        subject: c.subject,
+        classLevels: c.classLevels,
+      }));
+      setCourses((prev) => {
+        const seen = new Set(prev.map((p) => p.slug));
+        const added = customFormatted.filter((cf) => !seen.has(cf.slug));
+        return [...added, ...prev];
+      });
+    }
+  }, [initialCourses]);
 
   const subjects = useMemo(() => {
     const set = new Set<string>();
@@ -100,16 +122,34 @@ export function CourseCatalog({
       return { recommended: [], allFiltered: sorted };
     }
 
-    const normSubjects = profile.subjects.map((s) => s.toLowerCase().replace(/_/g, " "));
+    const normSubjects = (profile.subjects || []).map((s) =>
+      s.toLowerCase().replace(/_/g, " ").replace(/primary|jss|sss/g, "").trim()
+    );
 
-    const rec = sorted.filter((c) => {
+    // Score courses based on exact match: both subject and level match gets highest priority
+    const scored = sorted.map((c) => {
       const levelHit = c.classLevels.some((lvl) => profile.classLevels.includes(lvl as any));
       const subjHit = normSubjects.some((ns) =>
-        (c.subject ?? "").toLowerCase().includes(ns) ||
-        c.title.toLowerCase().includes(ns)
+        ns.length > 2 && (
+          (c.subject ?? "").toLowerCase().includes(ns) ||
+          c.title.toLowerCase().includes(ns) ||
+          (c.description ?? "").toLowerCase().includes(ns)
+        )
       );
-      return levelHit || subjHit;
+
+      let score = 0;
+      if (levelHit && subjHit) score = 3; // Both level & subject match (top tier)
+      else if (subjHit) score = 2;        // Subject match
+      else if (levelHit) score = 1;       // Level match
+
+      return { course: c, score, levelHit, subjHit };
     });
+
+    // Recommended list sorted by match relevance
+    const rec = scored
+      .filter((item) => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map((item) => item.course);
 
     return { recommended: rec, allFiltered: sorted };
   }, [courses, query, subject, sort, profile]);

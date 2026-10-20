@@ -42,9 +42,19 @@ export async function requestLessonPlanGeneration(
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 12000); // 12s timeout
 
+    let deviceHeaders: Record<string, string> = {};
+    if (typeof window !== "undefined") {
+      try {
+        const { getDeviceToken } = await import("@/lib/offline");
+        const token = getDeviceToken();
+        if (token?.deviceId) deviceHeaders["x-device-id"] = token.deviceId;
+        if (token?.boundActivationCode) deviceHeaders["x-device-token"] = token.boundActivationCode;
+      } catch {}
+    }
+
     const res = await fetch("/api/lesson-plans/draft", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...deviceHeaders },
       body: JSON.stringify(params),
       signal: controller.signal,
     });

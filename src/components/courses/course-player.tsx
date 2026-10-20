@@ -150,6 +150,9 @@ export function CoursePlayer({
     if (typeof window !== "undefined") {
       try {
         window.localStorage.setItem(`trb.course_completed.${courseId}`, "true");
+        // Issue verifiable local completion certificate immediately
+        const { issueLocalCertificate } = await import("@/lib/certificates/local-certificates");
+        issueLocalCertificate(courseId, courseTitle);
       } catch {}
     }
 
@@ -253,32 +256,58 @@ export function CoursePlayer({
               <li key={m.id}>
                 <Card>
                   <CardBody>
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-xs font-semibold text-ink">
-                            {i + 1}
-                          </span>
-                          <h2 className="font-semibold text-ink">{m.title}</h2>
-                          {isDone && <Badge variant="published">Done</Badge>}
-                        </div>
-                        {m.body && (
-                          <div className="prose prose-sm prose-neutral mt-4 max-w-none">
-                            <ReactMarkdown>{m.body}</ReactMarkdown>
-                          </div>
-                        )}
+                    {/* Module Header */}
+                    <div className="flex items-center justify-between gap-4 border-b border-warm-100 pb-3">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-warm-100 text-xs font-bold text-ink">
+                          {i + 1}
+                        </span>
+                        <h2 className="text-base font-bold text-ink sm:text-lg">{m.title}</h2>
                       </div>
+                      {isDone && <Badge variant="published">Done</Badge>}
+                    </div>
 
+                    {/* Module Content - Full Width */}
+                    {m.body && (
+                      <div className="prose prose-sm prose-neutral mt-4 max-w-none text-warm-900 leading-relaxed">
+                        <ReactMarkdown>{m.body}</ReactMarkdown>
+                      </div>
+                    )}
+
+                    {/* Module Action Bar - Bottom Footer */}
+                    <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-warm-100 pt-4">
+                      {/* Ask AI Contextual Assistant */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const event = new CustomEvent("trb:open-chat", {
+                            detail: {
+                              prompt: `I am currently studying module ${i + 1}: "${m.title}" in the course "${courseTitle}". Can you explain this concept in more practical detail for a Nigerian classroom with examples?`,
+                            },
+                          });
+                          window.dispatchEvent(event);
+                        }}
+                        className="inline-flex items-center gap-2 rounded-xl border border-warm-200 bg-warm-50 px-3.5 py-2 text-xs font-semibold text-ink transition-all hover:bg-warm-100 hover:border-warm-300"
+                      >
+                        <span>🤖</span>
+                        <span>Ask AI about this lesson</span>
+                      </button>
+
+                      {/* Clean Mark Complete Checkbox / Button */}
                       {activeEnrollmentId && (
-                        <label className="flex shrink-0 cursor-pointer items-center gap-2 text-sm">
+                        <label className="inline-flex cursor-pointer select-none items-center gap-2.5 rounded-xl border border-warm-200 bg-white px-4 py-2 text-xs font-semibold shadow-sm transition-all hover:bg-warm-50">
                           <input
                             type="checkbox"
                             checked={isDone}
                             disabled={busy === m.id}
                             onChange={(e) => toggleModule(m.id, e.target.checked)}
-                            className={cn("h-4 w-4 rounded border-neutral-300")}
+                            className={cn(
+                              "h-4 w-4 rounded border-warm-300 text-ink focus:ring-ink"
+                            )}
                           />
-                          <span className="text-neutral-600">{isDone ? "Completed" : "Mark complete"}</span>
+                          <span className={cn(isDone ? "text-emerald-700 font-bold" : "text-ink")}>
+                            {isDone ? "✓ Completed" : "Mark as complete"}
+                          </span>
                         </label>
                       )}
                     </div>

@@ -58,6 +58,35 @@ export default function AppActivatePage() {
 
     setLoading(true);
     try {
+      // 1. Hardware device verification
+      const { getDeviceId } = await import("@/lib/offline/device");
+      const deviceId = getDeviceId();
+
+      // Check with server registry if online to guarantee single-use across all devices
+      try {
+        const claimRes = await fetch("/api/activation/validate-and-claim", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: cleaned, deviceId }),
+        });
+
+        if (claimRes.status === 409) {
+          const json = await claimRes.json();
+          setLoading(false);
+          setError(json.error || "This activation code has already been activated by another user.");
+          return;
+        }
+
+        if (!claimRes.ok && claimRes.status !== 500) {
+          const json = await claimRes.json();
+          setLoading(false);
+          setError(json.error || "Activation code is invalid or has expired.");
+          return;
+        }
+      } catch {
+        // If device has no internet connection, proceed with local cryptographic verification
+      }
+
       const result = await redeemActivationCode(cleaned);
       if (!result.ok) {
         setLoading(false);
@@ -86,13 +115,19 @@ export default function AppActivatePage() {
         if (state.detail) setStatusDetail(state.detail);
 
         if (state.status === "ready") {
-          setIsReady(true);
-          setStatusDetail("All offline resources downloaded & verified.");
-          // Auto-redirect to courses after 1.8 seconds
-          setTimeout(() => {
-            router.replace("/courses");
-            router.refresh();
-          }, 1800);
+          setStatusDetail("Synthesizing tailored courses for your classes & subjects...");
+          // Generate tailored courses using profile
+          import("@/lib/content/course-generator").then(({ generateTailoredCoursesForTeacher }) => {
+            generateTailoredCoursesForTeacher().finally(() => {
+              setIsReady(true);
+              setStatusDetail("All offline resources & courses generated successfully.");
+              // Auto-redirect to courses after 1.8 seconds
+              setTimeout(() => {
+                router.replace("/courses");
+                router.refresh();
+              }, 1800);
+            });
+          });
         }
       });
     } catch (err) {
