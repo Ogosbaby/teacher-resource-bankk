@@ -11,9 +11,6 @@ import {
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user?.id) {
-    return new Response("Unauthorized", { status: 401 });
-  }
 
   const { message, sessionId } = (await req.json()) as {
     message: string;
@@ -24,15 +21,24 @@ export async function POST(req: NextRequest) {
     return new Response("Missing message", { status: 400 });
   }
 
-  const chatSessionId = sessionId ?? (await createSession(session.user.id));
-  await saveMessage(chatSessionId, "user", message);
+  let chatSessionId = sessionId;
+  let history: { role: "user" | "assistant" | "system"; content: string }[] = [];
+
+  // Persist session and history if user is signed in to web account
+  if (session?.user?.id) {
+    try {
+      chatSessionId = sessionId ?? (await createSession(session.user.id));
+      await saveMessage(chatSessionId, "user", message);
+      history = await getSessionMessages(chatSessionId);
+    } catch (dbErr) {
+      console.warn("Could not persist message to database, continuing session in transient mode:", dbErr);
+    }
+  }
 
   // Retrieve grounding context before building the prompt. This never throws —
   // on any failure it reports a status the prompt describes honestly.
   const retrieval = await retrieveContext(message);
   const systemPrompt = buildSystemPrompt(retrieval);
-
-  const history = await getSessionMessages(chatSessionId);
 
   const ai = getAIProvider();
   const stream = ai.streamChat([systemPrompt, ...history]);
@@ -47,12 +53,16 @@ export async function POST(req: NextRequest) {
           fullResponse += token;
           controller.enqueue(encoder.encode(token));
         }
-        // Record which KB answered and exactly which chunks were used, so a
-        // response can be audited back to its sources.
-        await saveMessage(chatSessionId, "assistant", fullResponse, {
-          sourceTypeUsed: retrieval.chunks.length ? retrieval.routedTo : null,
-          retrievedChunkIds: retrieval.chunks.map((c) => c.id),
-        });
+        if (session?.user?.id && chatSessionId) {
+          try {
+            await saveMessage(chatSessionId, "assistant", fullResponse, {
+              sourceTypeUsed: retrieval.chunks.length ? retrieval.routedTo : null,
+              retrievedChunkIds: retrieval.chunks.map((c) => c.id),
+            });
+          } catch (dbErr) {
+            console.warn("Could not persist assistant response to database:", dbErr);
+          }
+        }
       } catch (err) {
         console.error("Chat stream error:", err);
         controller.enqueue(
@@ -69,7 +79,7 @@ export async function POST(req: NextRequest) {
   return new Response(readable, {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
-      "X-Session-Id": chatSessionId,
+      ...(chatSessionId ? { "X-Session-Id": chatSessionId } : {}),
       // Lets the widget surface whether the answer was grounded in platform content.
       "X-Retrieval-Status": retrieval.status,
     },

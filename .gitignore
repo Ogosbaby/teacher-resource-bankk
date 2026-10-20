@@ -17,3 +17,5 @@ tsconfig.tsbuildinfo
 *.apk
 public/downloads/*.apk
 build.log
+.vercel
+.env*

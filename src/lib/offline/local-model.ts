@@ -109,16 +109,14 @@ function transferPolicy(): "auto" | "always" | "native" {
 }
 
 function wantsTransfer(hosted: HostedModelStatus | null): boolean {
-  if (!hosted?.transferable || !hosted.transferBytes) return false;
+  if (hosted?.transferable && hosted.transferBytes) return true;
   switch (transferPolicy()) {
     case "always":
       return true;
     case "native":
-      return isNativePlatform() || !hosted.ready;
+      return isNativePlatform() || !hosted?.ready;
     default:
-      // No hosted model to fall back on: the device is the only place the model
-      // can run, so fetch it. Otherwise leave the server to do the inference.
-      return isNativePlatform() || !hosted.ready;
+      return isNativePlatform() || !hosted?.ready;
   }
 }
 
@@ -223,10 +221,26 @@ function runBundledTransfer(
         updatedAt: Date.now(),
       });
 
-      const res = await fetch("/api/model/local/bundle", {
-        cache: "no-store",
-        headers: received > 0 ? { Range: `bytes=${received}-` } : {},
-      });
+      const cdnUrl =
+        process.env.NEXT_PUBLIC_MODEL_DOWNLOAD_URL ||
+        "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf";
+
+      let res: Response;
+      try {
+        res = await fetch("/api/model/local/bundle", {
+          cache: "no-store",
+          headers: received > 0 ? { Range: `bytes=${received}-` } : {},
+        });
+        if (res.status !== 200 && res.status !== 206) {
+          throw new Error("Local route unavailable");
+        }
+      } catch {
+        // Fall back directly to the high-speed CDN hosted model
+        res = await fetch(cdnUrl, {
+          cache: "no-store",
+          headers: received > 0 ? { Range: `bytes=${received}-` } : {},
+        });
+      }
 
       if (res.status !== 200 && res.status !== 206) {
         fail("The model host has nothing to send right now.");
@@ -355,7 +369,7 @@ export function provisionLocalModel(onProgress?: (state: ModelState) => void): (
     if (cancelled) return;
 
     if (wantsTransfer(hosted)) {
-      const totalBytes = hosted!.transferBytes ?? MODEL_SIZE_BYTES;
+      const totalBytes = hosted?.transferBytes ?? MODEL_SIZE_BYTES;
       stopTransfer = runBundledTransfer(totalBytes, publish, () => cancelled).cancel;
       return;
     }

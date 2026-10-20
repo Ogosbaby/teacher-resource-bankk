@@ -26,7 +26,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
  *    set by hand, so the two cannot disagree and produce an app that silently
  *    loads nothing.
  */
-const target = process.env.CAP_SERVER_URL?.trim() || "http://192.168.1.186:3000";
+const target = process.env.CAP_SERVER_URL?.trim() || "https://teacher-resource-bankk.vercel.app";
 const isSecure = target.startsWith("https://");
 
 const config: CapacitorConfig = {

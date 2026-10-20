@@ -3,6 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 
+import { getDeviceToken, isModelReady } from "@/lib/offline";
+import { runWllamaInference } from "@/lib/offline/wllama-runner";
+
 type Message = { role: "user" | "assistant"; content: string };
 type Feedback = "useful" | "needs-editing" | "incorrect" | null;
 
@@ -35,6 +38,32 @@ export function FullScreenChat({ open, onClose }: FullScreenChatProps) {
 
   if (!open) return null;
 
+  async function getOfflineReply(promptText: string): Promise<string> {
+    if (isModelReady()) {
+      try {
+        const wllamaOutput = await runWllamaInference(promptText);
+        if (wllamaOutput && wllamaOutput.trim().length > 0) {
+          return wllamaOutput;
+        }
+      } catch (e) {
+        console.warn("Wllama on-device inference failed, falling back to curriculum engine:", e);
+      }
+    }
+
+    let offlineReply = "*(Offline Mode)* ";
+    const q = promptText.toLowerCase();
+    if (q.includes("lesson") || q.includes("plan") || q.includes("note")) {
+      offlineReply += `Here is an instructional guide for **${promptText}**:\n\n### Recommended Lesson Structure (NERDC Aligned):\n1. **Behavioral Objectives**: By the end of 40 minutes, learners should define the core concept, identify 3 real-world examples, and solve check exercises.\n2. **Instructional Materials**: Chalkboard, diagrammatic charts, flashcards, and locally sourced realia.\n3. **Step 1: Introduction (5 mins)**: Connect topic to everyday Nigerian life.\n4. **Step 2: Core Concept (15 mins)**: Teach principles with step-by-step chalkboard demonstration.\n5. **Step 3: Guided Practice (10 mins)**: Paired pupil exercises with peer review.\n6. **Step 4: Evaluation (10 mins)**: 3-question formative assessment.\n\n*Tip: You can also open the **Lesson Planner** to format and save this note to your device!*`;
+    } else if (q.includes("assessment") || q.includes("formative") || q.includes("test") || q.includes("exam")) {
+      offlineReply += `### Formative Assessment Strategies for Large Classrooms:\n- **Exit Slips**: Hand learners a scrap paper with 1 quick question to solve before leaving.\n- **Think-Pair-Share**: 60 seconds independent thinking, 2 minutes paired discussion, then cold-call 3 pairs.\n- **Chalkboard Relays**: Groups send representatives to solve sequential steps of a problem.`;
+    } else if (q.includes("jss") || q.includes("primary") || q.includes("sss") || q.includes("course") || q.includes("teach")) {
+      offlineReply += `For your classes, check out the **Courses** tab for accredited modules in:\n- **Active Pedagogy & Large Classroom Management**\n- **Continuous Assessment & Record Keeping**\n- **Integrating Phonics & Numeracy Realia**\n\nAll courses include downloadable schemes of work and certificates upon completion.`;
+    } else {
+      offlineReply += `I am working using your device's cached curriculum knowledge. You can ask me to draft lesson notes for Primary, JSS, and SSS subjects, suggest teaching aids, or create assessment rubrics.`;
+    }
+    return offlineReply;
+  }
+
   async function sendMessage() {
     const trimmed = input.trim();
     if (!trimmed || isStreaming) return;
@@ -45,9 +74,14 @@ export function FullScreenChat({ open, onClose }: FullScreenChatProps) {
     setIsStreaming(true);
 
     try {
+      const token = getDeviceToken();
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token?.deviceId ? { "x-device-id": token.deviceId } : {}),
+          ...(token?.boundActivationCode ? { "x-device-token": token.boundActivationCode } : {}),
+        },
         body: JSON.stringify({ message: trimmed, sessionId }),
       });
 
@@ -55,11 +89,12 @@ export function FullScreenChat({ open, onClose }: FullScreenChatProps) {
       if (newSessionId) setSessionId(newSessionId);
 
       if (!res.ok || !res.body) {
+        const fallback = await getOfflineReply(trimmed);
         setMessages((prev) => {
           const updated = [...prev];
           updated[updated.length - 1] = {
             role: "assistant",
-            content: "The assistant is momentarily unavailable. Please check connectivity and try again.",
+            content: fallback,
           };
           return updated;
         });
@@ -68,10 +103,12 @@ export function FullScreenChat({ open, onClose }: FullScreenChatProps) {
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
+      let hasReadChunk = false;
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+        hasReadChunk = true;
         const chunk = decoder.decode(value, { stream: true });
         setMessages((prev) => {
           const updated = [...prev];
@@ -82,23 +119,25 @@ export function FullScreenChat({ open, onClose }: FullScreenChatProps) {
           return updated;
         });
       }
-    } catch {
-      // Offline fallback: provide an instant curriculum-aligned response
-      let offlineReply = "*(Offline Mode)* ";
-      const q = trimmed.toLowerCase();
-      if (q.includes("lesson") || q.includes("plan") || q.includes("note")) {
-        offlineReply += `Here is an instructional guide for **${trimmed}**:\n\n### Recommended Lesson Structure (NERDC Aligned):\n1. **Behavioral Objectives**: By the end of 40 minutes, learners should define the core concept, identify 3 real-world examples, and solve check exercises.\n2. **Instructional Materials**: Chalkboard, diagrammatic charts, flashcards, and locally sourced realia.\n3. **Step 1: Introduction (5 mins)**: Connect topic to everyday Nigerian life.\n4. **Step 2: Core Concept (15 mins)**: Teach principles with step-by-step chalkboard demonstration.\n5. **Step 3: Guided Practice (10 mins)**: Paired pupil exercises with peer review.\n6. **Step 4: Evaluation (10 mins)**: 3-question formative assessment.\n\n*Tip: You can also open the **Lesson Planner** to format and save this note to your device!*`;
-      } else if (q.includes("assessment") || q.includes("formative") || q.includes("test") || q.includes("exam")) {
-        offlineReply += `### Formative Assessment Strategies for Large Classrooms:\n- **Exit Slips**: Hand learners a scrap paper with 1 quick question to solve before leaving.\n- **Think-Pair-Share**: 60 seconds independent thinking, 2 minutes paired discussion, then cold-call 3 pairs.\n- **Chalkboard Relays**: Groups send representatives to solve sequential steps of a problem.`;
-      } else {
-        offlineReply += `I am working offline using your device's cached knowledge. You can ask me to draft lesson notes for Primary, JSS, and SSS subjects, or suggest classroom activities.`;
-      }
 
+      if (!hasReadChunk) {
+        const fallback = await getOfflineReply(trimmed);
+        setMessages((prev) => {
+          const updated = [...prev];
+          updated[updated.length - 1] = {
+            role: "assistant",
+            content: fallback,
+          };
+          return updated;
+        });
+      }
+    } catch {
+      const fallback = await getOfflineReply(trimmed);
       setMessages((prev) => {
         const updated = [...prev];
         updated[updated.length - 1] = {
           role: "assistant",
-          content: offlineReply,
+          content: fallback,
         };
         return updated;
       });
