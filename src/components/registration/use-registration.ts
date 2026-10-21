@@ -25,6 +25,8 @@ import {
   registerDevice,
   saveDraft,
   saveTeacherProfile,
+  isEmailRegisteredLocally,
+  recordRegisteredEmailLocally,
   syncTermPassWithServer,
   type ModelState,
   type TermPassRevocation,
@@ -224,6 +226,15 @@ export function useRegistration() {
 
       if (!trimmedName) return setError("Your name is required.");
       if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) return setError("Enter a valid email address.");
+
+      // 1. Immediate offline check: Was this email registered previously on this device?
+      if (isEmailRegisteredLocally(cleanEmail)) {
+        const msg =
+          "This email address is already registered on this device. Please sign in instead.";
+        setEmailConflict(msg);
+        setError(msg);
+        return;
+      }
 
       setCheckingEmail(true);
       try {

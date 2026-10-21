@@ -131,6 +131,8 @@ export {
   resolveClockTamper,
   saveTeacherProfile,
   getTeacherProfile,
+  isEmailRegisteredLocally,
+  recordRegisteredEmailLocally,
   type ClockTamperState,
   type TeacherProfile,
 } from "./tamper";

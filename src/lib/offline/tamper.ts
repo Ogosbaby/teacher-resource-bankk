@@ -6,7 +6,7 @@
  * offline term passes indefinitely.
  */
 import { STORAGE_KEYS } from "./keys";
-import { readEncrypted, writeEncrypted, removeKey } from "./crypto";
+import { readEncrypted, writeEncrypted, removeKey, readPlain, writePlain } from "./crypto";
 import type { ClassLevel } from "@/lib/content/curriculum";
 
 export interface ClockTamperState {
@@ -88,6 +88,45 @@ export function resolveClockTamper(verifiedServerTime?: number): void {
   writeEncrypted(STORAGE_KEYS.lastOpenedTimestamp, validTime);
 }
 
+export function recordRegisteredEmailLocally(email?: string): void {
+  if (!email) return;
+  const clean = email.trim().toLowerCase();
+  if (!clean) return;
+  try {
+    const raw = readPlain("trb.registered_emails");
+    const list: string[] = raw ? JSON.parse(raw) : [];
+    if (!list.includes(clean)) {
+      list.push(clean);
+      writePlain("trb.registered_emails", JSON.stringify(list));
+    }
+  } catch {}
+}
+
+export function isEmailRegisteredLocally(email?: string): boolean {
+  if (!email) return false;
+  const clean = email.trim().toLowerCase();
+  if (!clean) return false;
+
+  // 1. Check current active teacher profile
+  const profile = getTeacherProfile();
+  if (profile?.email && profile.email.trim().toLowerCase() === clean) {
+    return true;
+  }
+
+  // 2. Check local history of registered emails on this device
+  try {
+    const raw = readPlain("trb.registered_emails");
+    if (raw) {
+      const list: string[] = JSON.parse(raw);
+      if (Array.isArray(list) && list.some((e) => e.trim().toLowerCase() === clean)) {
+        return true;
+      }
+    }
+  } catch {}
+
+  return false;
+}
+
 // ─── Persistent Teacher Profile ──────────────────────────────
 
 export function saveTeacherProfile(profile: {
@@ -108,9 +147,13 @@ export function saveTeacherProfile(profile: {
     savedAt: Date.now(),
   };
   writeEncrypted(STORAGE_KEYS.teacherProfile, record);
+  if (profile.email) {
+    recordRegisteredEmailLocally(profile.email);
+  }
   return record;
 }
 
 export function getTeacherProfile(): TeacherProfile | null {
   return readEncrypted<TeacherProfile>(STORAGE_KEYS.teacherProfile);
 }
+
