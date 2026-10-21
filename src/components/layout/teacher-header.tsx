@@ -230,19 +230,21 @@ export function TeacherHeader({
                           <span>My Library</span>
                         </Link>
                       </li>
-                      <li>
-                        <Link
-                          href="/downloads"
-                          className="flex items-center gap-2.5 px-4 py-2.5 font-medium text-warm-700 hover:bg-warm-50 hover:text-ink"
-                        >
-                          <svg viewBox="0 0 24 24" className="h-4 w-4 text-warm-500" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                            <polyline points="7 10 12 15 17 10" />
-                            <line x1="12" y1="15" x2="12" y2="3" />
-                          </svg>
-                          <span>Download App</span>
-                        </Link>
-                      </li>
+                      {!isNative && (
+                        <li>
+                          <Link
+                            href="/downloads"
+                            className="flex items-center gap-2.5 px-4 py-2.5 font-medium text-warm-700 hover:bg-warm-50 hover:text-ink"
+                          >
+                            <svg viewBox="0 0 24 24" className="h-4 w-4 text-warm-500" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                              <polyline points="7 10 12 15 17 10" />
+                              <line x1="12" y1="15" x2="12" y2="3" />
+                            </svg>
+                            <span>Download App</span>
+                          </Link>
+                        </li>
+                      )}
                       <li className="border-t border-warm-100 mt-1 pt-1">
                         <button
                           type="button"

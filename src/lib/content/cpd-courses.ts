@@ -3,6 +3,7 @@
  *
  * Stored directly in application code to guarantee 100% offline availability
  * without requiring PostgreSQL or external network requests.
+ * Each course contains 5 to 6 fully curated, pedagogical modules.
  */
 
 export interface CPDModule {
@@ -27,6 +28,9 @@ export interface CPDCourse {
 }
 
 export const PRELOADED_CPD_COURSES: CPDCourse[] = [
+  // ──────────────────────────────────────────────────────────────────────────
+  // COURSE 1: FORMATIVE ASSESSMENT (5 MODULES)
+  // ──────────────────────────────────────────────────────────────────────────
   {
     id: "cpd-formative-assessment",
     slug: "formative-assessment-everyday-teaching",
@@ -35,7 +39,7 @@ export const PRELOADED_CPD_COURSES: CPDCourse[] = [
       "Master low-stakes, real-time assessment strategies that uncover misconceptions immediately, without adding hours of grading.",
     subject: "Professional Development",
     classLevels: ["Primary", "JSS", "SSS"],
-    estimatedDurationMinutes: 75,
+    estimatedDurationMinutes: 120,
     modules: [
       {
         id: "fa-mod-1",
@@ -57,9 +61,9 @@ Summative assessments (WAEC, BECE, termly exams) report **what** a student achie
       },
       {
         id: "fa-mod-2",
-        title: "Fast, Low-Prep Check-In Techniques",
+        title: "Fast, Low-Prep Check-In Techniques (Zero Cost)",
         contentType: "text",
-        body: `## Fast, Low-Prep Check-In Techniques
+        body: `## Fast, Low-Prep Check-In Techniques (Zero Cost)
 
 These techniques require zero photocopying, minimal supplies, and thrive in large classes with 40+ learners.
 
@@ -90,16 +94,55 @@ Scan the room in 5 seconds to decide whether to advance or re-teach.
 A diagnostic question is a multiple-choice question where **every wrong answer reveals a specific misconception**.
 
 ### Example Diagnostic Question (Mathematics):
-*What is 4 + 3 × 2?*
-- A) 14 *(Learner evaluated left-to-right, ignoring order of operations)*
-- B) 10 *(Correct: 3 × 2 = 6; 4 + 6 = 10)*
-- C) 24 *(Learner multiplied everything: 4 × 3 × 2)*
-- D) 9 *(Arithmetic slip)*
+*What is $4 + 3 \\times 2$?*
+- **A) 14** *(Learner evaluated left-to-right, ignoring order of operations)*
+- **B) 10** *(Correct: $3 \\times 2 = 6$; $4 + 6 = 10$)*
+- **C) 24** *(Learner multiplied everything: $4 \\times 3 \\times 2$)*
+- **D) 9** *(Arithmetic slip)*
 
 When learners answer **A**, you know immediately that they need review on PEMDAS/BODMAS, not basic addition.`,
       },
+      {
+        id: "fa-mod-4",
+        title: "Live Chalkboard Polling & ABCD Response Cards",
+        contentType: "text",
+        body: `## Live Chalkboard Polling & ABCD Response Cards
+
+How do you check 60 learners simultaneously without digital clickers or devices?
+
+### Low-Tech ABCD Letter Cards
+1. Every pupil receives or makes four palm-sized cards: **A**, **B**, **C**, and **D** using cut exercise book cardboard.
+2. Pose a multiple-choice question on the chalkboard.
+3. Count: *"3, 2, 1, Flash!"*
+4. All pupils raise their card against their chest facing the teacher.
+
+### Benefits of Chest-Level Flashing:
+- Prevents pupils from looking around and copying the top students.
+- Gives the teacher an instantaneous 360-degree scan of understanding across all rows.
+- If more than 30% show the wrong letter, pause immediately and address the specific distractor.`,
+      },
+      {
+        id: "fa-mod-5",
+        title: "Closing the Feedback Loop: Actionable Next Steps",
+        contentType: "text",
+        body: `## Closing the Feedback Loop: Actionable Next Steps
+
+Assessment without timely adjustment is merely record-keeping. The true power of formative assessment lies in what happens immediately after a gap is detected.
+
+### The 4-Tier Pivot Protocol:
+1. **Under 20% incorrect:** Pair struggling students with peers during independent work; keep the majority moving forward.
+2. **20% to 50% incorrect:** Stop independent work. Model a second, alternative explanation using a concrete counter-example or visual diagram.
+3. **Over 50% incorrect:** Abort the current task. Backtrack to the prerequisite concept and rebuild the foundation.
+
+### Closing Routine:
+Spend the last 3 minutes of every period having learners write a one-sentence summary: *"The most important rule I learned today is..."*`,
+      },
     ],
   },
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // COURSE 2: CLASSROOM MANAGEMENT (5 MODULES)
+  // ──────────────────────────────────────────────────────────────────────────
   {
     id: "cpd-classroom-management",
     slug: "classroom-management-essentials",
@@ -108,7 +151,7 @@ When learners answer **A**, you know immediately that they need review on PEMDAS
       "Practical routines, voice modulation, transitions, and de-escalation strategies tailored for Nigerian primary and secondary classrooms.",
     subject: "Classroom Practice",
     classLevels: ["Primary", "JSS", "SSS"],
-    estimatedDurationMinutes: 90,
+    estimatedDurationMinutes: 120,
     modules: [
       {
         id: "cm-mod-1",
@@ -151,8 +194,42 @@ Public arguments escalate disruption. Address minor infractions discreetly and p
 3. **Private individual whisper:** "Chinedu, pen on the paper in 3 seconds, please."
 4. **Choice with clear consequence:** "Emeka, you can complete this exercise now or finish it during break. You decide."`,
       },
+      {
+        id: "cm-mod-4",
+        title: "Seating Arrangements & Classroom Traffic Flow",
+        contentType: "text",
+        body: `## Seating Arrangements & Classroom Traffic Flow
+
+In long benches with 3–4 students per wooden desk, movement and visibility require thoughtful organization.
+
+### Strategic Bench Allocations:
+- **High-Attention Zone:** Place pupils who struggle with vision, hearing, or attention in the central first two rows.
+- **Behavior Balancing:** Separate social instigators across diagonal corners of the room.
+- **Clear Walkways:** Maintain at least one wide central aisle so you can circulate to the very back of the room continuously during lessons.
+
+### Circulation Habit:
+Never remain anchored behind the teacher's desk. Teach from the sides and rear of the room to ensure 100% engagement.`,
+      },
+      {
+        id: "cm-mod-5",
+        title: "Building Relational Trust with High Expectations",
+        contentType: "text",
+        body: `## Building Relational Trust with High Expectations
+
+The strongest discipline is grounded in mutual respect and predictable fairness.
+
+### Daily Micro-Habits:
+- Greet students at the doorway with warm eye contact.
+- Learn and pronounce every student's full name correctly.
+- Praise effort, perseverance, and clarity rather than generic "smartness".
+- Never hold whole-class collective punishments when a few individuals are responsible.`,
+      },
     ],
   },
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // COURSE 3: TEACHING MATHEMATICS (5 MODULES)
+  // ──────────────────────────────────────────────────────────────────────────
   {
     id: "cpd-maths-understanding",
     slug: "teaching-mathematics-conceptual-understanding",
@@ -162,7 +239,7 @@ Public arguments escalate disruption. Address minor infractions discreetly and p
     subject: "Mathematics",
     classLevels: ["Primary", "JSS"],
     targetSubjects: ["primary_mathematics", "jss_maths"],
-    estimatedDurationMinutes: 100,
+    estimatedDurationMinutes: 130,
     modules: [
       {
         id: "math-mod-1",
@@ -188,7 +265,8 @@ Fractions are the single greatest barrier to algebraic thinking in Upper Primary
 ### Visualizing Equivalent Fractions:
 - Folding scrap paper into halves, fourths, and eighths.
 - Showing that $\\frac{2}{4}$ is physically identical in area to $\\frac{1}{2}$.
-- Relating denominators to "name/size of slice" and numerators to "number of slices".`,
+- Relating denominators to "name/size of slice" and numerators to "number of slices".
+- Connecting fractions to division: $\\frac{a}{b} = a \\div b$.`,
       },
       {
         id: "math-mod-3",
@@ -198,11 +276,49 @@ Fractions are the single greatest barrier to algebraic thinking in Upper Primary
 
 Teach learners the Singapore Bar Model approach to translate English word problems into mathematical operations.
 
-*Example:* "Amina has 15 more pencils than Tunde. Together they have 45 pencils."
-Drawing two bars where Amina's bar has an extra segment of 15 allows students to see that $(45 - 15) \\div 2$ gives Tunde's quantity immediately.`,
+### Worked Example:
+*"Amina has 15 more pencils than Tunde. Together they have 45 pencils. How many does Tunde have?"*
+
+1. Draw a rectangular bar for Tunde.
+2. Draw Amina's bar identical in length plus an extra segment of 15.
+3. Students see visually: Total $45 - 15 = 30$, split equally across the 2 equal bars.
+4. $30 \\div 2 = 15$ pencils for Tunde.`,
+      },
+      {
+        id: "math-mod-4",
+        title: "Mastering Decimals, Percentages & Ratio Connections",
+        contentType: "text",
+        body: `## Mastering Decimals, Percentages & Ratio Connections
+
+Students frequently treat fractions, decimals, and percentages as three disconnected subjects.
+
+### The Universal Equivalence Anchor:
+- Show that $0.75$, $\\frac{3}{4}$, and $75\\%$ are identical values wearing different mathematical clothes.
+- Teach percentage as "per hundred" ($/100$) using a 10x10 square grid.
+- Connect ratios ($2:3$) to part-whole fractions: the total parts is $2 + 3 = 5$, so the shares are $\\frac{2}{5}$ and $\\frac{3}{5}$.`,
+      },
+      {
+        id: "math-mod-5",
+        title: "Diagnostic Error Analysis: Why Students Get It Wrong",
+        contentType: "text",
+        body: `## Diagnostic Error Analysis: Why Students Get It Wrong
+
+Looking beyond the red checkmark: analyzing student thought processes.
+
+### The 3 Common Mathematical Error Types:
+1. **Executive Errors:** Calculation slips ($7 \\times 8 = 54$).
+2. **Conceptual Errors:** Misapplying principles (e.g. adding denominators: $\\frac{1}{2} + \\frac{1}{3} = \\frac{2}{5}$).
+3. **Translation Errors:** Misinterpreting word problem vocabulary ("less than" inverted).
+
+### Classroom Routine:
+Dedicate the first 5 minutes of each period to an "Error Hunt" where students explain why a fictional peer made a specific mistake on the board.`,
       },
     ],
   },
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // COURSE 4: FOUNDATIONAL LITERACY & PHONICS (5 MODULES)
+  // ──────────────────────────────────────────────────────────────────────────
   {
     id: "cpd-foundational-literacy",
     slug: "phonics-foundational-literacy",
@@ -212,7 +328,7 @@ Drawing two bars where Amina's bar has an extra segment of 15 allows students to
     subject: "English Language",
     classLevels: ["Primary"],
     targetSubjects: ["primary_english", "primary_english_studies"],
-    estimatedDurationMinutes: 80,
+    estimatedDurationMinutes: 110,
     modules: [
       {
         id: "lit-mod-1",
@@ -240,8 +356,54 @@ Fluency without comprehension is not reading. Move students from literal recall 
 - **Inferential:** "Why do you think Musa looked sad when he opened the door?" (Clues in the text + student inference).
 - **Evaluative:** "Would you make the same choice as Musa? Why or why not?"`,
       },
+      {
+        id: "lit-mod-3",
+        title: "Teaching High-Frequency 'Tricky' Words",
+        contentType: "text",
+        body: `## Teaching High-Frequency 'Tricky' Words
+
+Irregular sight words (*the, was, said, were, come*) cannot be decoded using basic phonics rules.
+
+### The Heart Word Technique:
+1. Identify the decodable part of the word (e.g. in *said*, /s/ and /d/ are regular).
+2. Highlight the unexpected letters (*ai*) with a heart symbol above them: this is the part students must memorize by heart.
+3. Multi-sensory practice: write the word in the air, tap it on the arm, and write it in a sentence.`,
+      },
+      {
+        id: "lit-mod-4",
+        title: "Guided Reading Groups in Large Classrooms",
+        contentType: "text",
+        body: `## Guided Reading Groups in Large Classrooms
+
+How to manage reading groups when you have 50 pupils:
+
+### The Station Rotation Model:
+- **Station 1 (With Teacher):** 10 pupils reading an instructional-level text aloud with immediate feedback.
+- **Station 2 (Independent):** Silent reading or phonics worksheet completion.
+- **Station 3 (Pairs):** Peer reading of familiar stories or flashcard speed drills.
+Rotate every 12 minutes.`,
+      },
+      {
+        id: "lit-mod-5",
+        title: "Scaffolded Writing: From Sentences to Paragraphs",
+        contentType: "text",
+        body: `## Scaffolded Writing: From Sentences to Paragraphs
+
+Guiding young writers past incomplete thoughts and missing capitalization.
+
+### The Sentence Doctor Routine:
+Write a flawed sentence on the chalkboard: *"musa went to market buy fish"*
+Ask pupils to diagnose the 3 illnesses:
+1. Capital letter missing at start (*Musa*).
+2. Missing preposition (*to the market*).
+3. Missing infinitive marker (*to buy fish*) and period at the end (*.*).`,
+      },
     ],
   },
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // COURSE 5: SCIENCE INQUIRY ON A BUDGET (5 MODULES)
+  // ──────────────────────────────────────────────────────────────────────────
   {
     id: "cpd-science-inquiry",
     slug: "practical-science-inquiry-budget",
@@ -251,7 +413,7 @@ Fluency without comprehension is not reading. Move students from literal recall 
     subject: "Sciences",
     classLevels: ["JSS", "SSS"],
     targetSubjects: ["jss_basic_science", "sss_biology", "sss_chemistry", "sss_physics"],
-    estimatedDurationMinutes: 110,
+    estimatedDurationMinutes: 120,
     modules: [
       {
         id: "sci-mod-1",
@@ -279,8 +441,56 @@ No laboratory required to demonstrate foundational science:
 - **Refraction & Optics:** A clear glass filled with water bending a hand-drawn pencil arrow.
 - **Electrical Circuits:** Basic flashlight batteries, copper wire, and small LED bulbs.`,
       },
+      {
+        id: "sci-mod-3",
+        title: "Biology Demonstrations: Respiration, Osmosis & Germination",
+        contentType: "text",
+        body: `## Biology Demonstrations: Respiration, Osmosis & Germination
+
+Tangible biological processes using market produce:
+
+### 1. Osmosis in Yam/Potato Cups
+- Scoop out a hollow in half a peeled yam.
+- Place concentrated sugar solution inside the hollow; place the yam in a shallow bowl of plain water.
+- Mark the liquid level with a pin. Observe after 2 hours: liquid rises due to endosmosis.
+
+### 2. Gaseous Exchange in Plants
+- Submerge freshly picked green leaves in warm water in a clear container.
+- Within minutes, tiny oxygen bubbles form on the underside of leaves around stomata.`,
+      },
+      {
+        id: "sci-mod-4",
+        title: "Teaching the Scientific Method Through Data Collection",
+        contentType: "text",
+        body: `## Teaching the Scientific Method Through Data Collection
+
+Science is not fact memorization; it is evidence-based reasoning.
+
+### The Scientific Inquiry Loop:
+1. **Hypothesis Formulation:** "If I increase the angle of the ramp, then the toy car will travel further because..."
+2. **Variable Control:** Explain why only ONE variable (ramp height) changes while car and surface stay identical.
+3. **T-Chart Data Recording:** Each pair records 3 repeated trials to eliminate outlier errors.
+4. **Conclusion Writing:** Answering directly whether the data supports the original hypothesis.`,
+      },
+      {
+        id: "sci-mod-5",
+        title: "Safety, Waste Disposal & Laboratory Improvisation",
+        contentType: "text",
+        body: `## Safety, Waste Disposal & Laboratory Improvisation
+
+Safe hands-on experiments even without specialized hoods or chemical showers.
+
+### Essential Rules:
+- Never taste or smell unknown chemical reactions directly; demonstrate proper gentle wafting.
+- Neutralize all acidic or basic waste with baking soda or vinegar before disposal.
+- Replace broken glass beakers with durable heat-resistant metal tins or clear plastic containers when heating is not required.`,
+      },
     ],
   },
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // COURSE 6: DIFFERENTIATED INSTRUCTION (5 MODULES)
+  // ──────────────────────────────────────────────────────────────────────────
   {
     id: "cpd-differentiated-instruction",
     slug: "differentiated-instruction-mixed-ability",
@@ -289,7 +499,7 @@ No laboratory required to demonstrate foundational science:
       "Design tiered assignments and scaffolding techniques so struggling learners thrive while advanced students stay challenged.",
     subject: "Pedagogy",
     classLevels: ["JSS", "SSS"],
-    estimatedDurationMinutes: 85,
+    estimatedDurationMinutes: 110,
     modules: [
       {
         id: "diff-mod-1",
@@ -316,6 +526,45 @@ Harness student collaboration productively:
 - Pair high-achieving students with peers needing clarification for 5-minute consolidation tasks.
 - Keep groups fluid so students are not permanently labeled as "slow" or "fast".
 - Establish clear roles within groups (Scribe, Speaker, Timekeeper, Materials Manager).`,
+      },
+      {
+        id: "diff-mod-3",
+        title: "Multi-Modal Information Delivery",
+        contentType: "text",
+        body: `## Multi-Modal Information Delivery
+
+Delivering concepts through multiple sensory channels ensures every learner connects:
+
+### The 3-Channel Explanation:
+1. **Verbal:** Clear, concise spoken explanation with deliberate pauses.
+2. **Visual:** Chalkboard diagram, table, or flowchart highlighting key relationships.
+3. **Kinesthetic:** Physical hand gesture, mime, or student roleplay embodying the concept.`,
+      },
+      {
+        id: "diff-mod-4",
+        title: "Differentiating Homework & Practice Exercises",
+        contentType: "text",
+        body: `## Differentiating Homework & Practice Exercises
+
+Avoid assigning 20 identical drill questions where struggling learners give up after Question 2.
+
+### Menu-Style Assignments (Tic-Tac-Toe):
+Offer a 3x3 grid of practice activities varying in complexity and presentation format. Students select 3 tasks forming a row or column to complete their assignment.`,
+      },
+      {
+        id: "diff-mod-5",
+        title: "Continuous Progress Monitoring & Student Agency",
+        contentType: "text",
+        body: `## Continuous Progress Monitoring & Student Agency
+
+Empowering learners to self-assess and track their own academic growth.
+
+### Self-Assessment Exit Slips:
+Before turning in work, students write one of three stamps on top of their paper:
+- **[!]** "I need help with this concept."
+- **[~]** "I understand, but need more practice."
+- **[*]** "I have mastered this and can explain it to someone."
+This gives the teacher instant insight for grouping during the next session.`,
       },
     ],
   },

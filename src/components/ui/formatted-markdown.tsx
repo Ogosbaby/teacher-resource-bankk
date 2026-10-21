@@ -9,11 +9,49 @@ interface FormattedMarkdownProps {
   className?: string;
 }
 
+function normalizeFormula(raw: string): string {
+  return raw
+    .replace(/\\\\/g, "\\")
+    .replace(/±/g, "\\pm ")
+    .replace(/×/g, "\\times ")
+    .replace(/÷/g, "\\div ")
+    .replace(/°/g, "^\\circ ")
+    .replace(/√\(([^)]+)\)/g, "\\sqrt{$1}")
+    .replace(/√([a-zA-Z0-9]+)/g, "\\sqrt{$1}");
+}
+
 /**
  * Replaces LaTeX math patterns ($...$ and $$...$$) with KaTeX rendered nodes.
  */
-function renderMathInString(text: string): React.ReactNode[] {
-  if (!text || (!text.includes("$") && !text.includes("\\("))) {
+export function renderMathInString(text: string): React.ReactNode[] {
+  if (!text) return [text];
+
+  const hasDelimiters = text.includes("$") || text.includes("\\(") || text.includes("\\[");
+
+  if (!hasDelimiters) {
+    if (
+      text.includes("\\frac") ||
+      text.includes("\\sqrt") ||
+      text.includes("\\pm") ||
+      text.includes("\\Delta") ||
+      text.includes("\\xrightarrow")
+    ) {
+      try {
+        const html = katex.renderToString(normalizeFormula(text), {
+          displayMode: false,
+          throwOnError: false,
+        });
+        return [
+          <span
+            key="raw-math"
+            className="inline-block px-1 align-baseline font-serif text-ink"
+            dangerouslySetInnerHTML={{ __html: html }}
+          />,
+        ];
+      } catch {
+        return [text];
+      }
+    }
     return [text];
   }
 
@@ -28,22 +66,21 @@ function renderMathInString(text: string): React.ReactNode[] {
     let isDisplay = false;
 
     if (part.startsWith("$$") && part.endsWith("$$") && part.length > 4) {
-      formula = part.slice(2, -2).trim();
+      formula = normalizeFormula(part.slice(2, -2).trim());
       isDisplay = true;
     } else if (part.startsWith("\\[") && part.endsWith("\\]") && part.length > 4) {
-      formula = part.slice(2, -2).trim();
+      formula = normalizeFormula(part.slice(2, -2).trim());
       isDisplay = true;
     } else if (part.startsWith("$") && part.endsWith("$") && part.length > 2) {
-      formula = part.slice(1, -1).trim();
+      formula = normalizeFormula(part.slice(1, -1).trim());
       isDisplay = false;
     } else if (part.startsWith("\\(") && part.endsWith("\\)") && part.length > 4) {
-      formula = part.slice(2, -2).trim();
+      formula = normalizeFormula(part.slice(2, -2).trim());
       isDisplay = false;
     } else {
       return part;
     }
 
-    // Clean up chemical formula common escapes
     try {
       const html = katex.renderToString(formula, {
         displayMode: isDisplay,
@@ -98,6 +135,15 @@ function processChildrenWithMath(children: React.ReactNode): React.ReactNode {
   }
 
   return children;
+}
+
+/**
+ * Standalone component to format math inside headings, badges, and card titles.
+ */
+export function MathText({ text, className = "" }: { text: string; className?: string }) {
+  if (!text) return null;
+  const nodes = renderMathInString(text);
+  return <span className={className}>{nodes}</span>;
 }
 
 export function FormattedMarkdown({ content, className = "" }: FormattedMarkdownProps) {

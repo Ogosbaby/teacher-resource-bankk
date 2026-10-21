@@ -58,6 +58,8 @@ export function useRegistration() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [emailConflict, setEmailConflict] = useState<string | null>(null);
   const [classLevels, setClassLevels] = useState<ClassLevel[]>([]);
   const [subjects, setSubjects] = useState<string[]>([]);
 
@@ -212,11 +214,43 @@ export function useRegistration() {
   );
 
   const handleStep1Continue = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault();
       setError(null);
-      if (!name.trim()) return setError("Your name is required.");
-      if (!/^\S+@\S+\.\S+$/.test(email)) return setError("Enter a valid email address.");
+      setEmailConflict(null);
+
+      const trimmedName = name.trim();
+      const cleanEmail = email.trim().toLowerCase();
+
+      if (!trimmedName) return setError("Your name is required.");
+      if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) return setError("Enter a valid email address.");
+
+      setCheckingEmail(true);
+      try {
+        const res = await fetch("/api/onboarding/check-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: cleanEmail }),
+        });
+
+        if (res.ok) {
+          const data = await res.json().catch(() => null);
+          if (data?.exists) {
+            const msg =
+              data.message ||
+              "This email address is already registered in our system. Please sign in instead.";
+            setEmailConflict(msg);
+            setError(msg);
+            setCheckingEmail(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("[registration] Online email check skipped (offline/network error):", err);
+      } finally {
+        setCheckingEmail(false);
+      }
+
       setStep(2);
     },
     [name, email]
@@ -251,6 +285,12 @@ export function useRegistration() {
     router.refresh();
   }, [router, granted, name]);
 
+  const handleEmailChange = useCallback((val: string) => {
+    setEmail(val);
+    setEmailConflict(null);
+    setError(null);
+  }, []);
+
   return {
     step,
     setStep,
@@ -259,9 +299,11 @@ export function useRegistration() {
     name,
     setName,
     email,
-    setEmail,
+    setEmail: handleEmailChange,
     phone,
     setPhone,
+    checkingEmail,
+    emailConflict,
     classLevels,
     subjects,
     finishing,

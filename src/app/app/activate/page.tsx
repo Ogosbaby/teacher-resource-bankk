@@ -21,6 +21,7 @@ import {
   syncTermPassWithServer,
   type ModelState,
 } from "@/lib/offline";
+import { formatActivationCodeInput } from "@/lib/utils/format-code";
 
 /**
  * Native app activation & resource download screen.
@@ -194,14 +195,14 @@ export default function AppActivatePage() {
 
                 <div className="mt-2.5 flex items-center justify-between text-[11px] text-warm-500">
                   <span>{formatBytes(bytesDownloaded)} of {formatBytes(totalBytes)}</span>
-                  <span className="truncate max-w-[170px] text-right font-medium text-warm-600">
+                  <span className="truncate max-w-[210px] text-right font-medium text-warm-600">
                     {statusDetail}
                   </span>
                 </div>
               </div>
 
-              {/* Action Area — only allows entering courses when download is complete */}
-              <div className="mt-6">
+              {/* Action & Dynamic Status Area */}
+              <div className="mt-5">
                 {isReady ? (
                   <>
                     <Button
@@ -215,9 +216,21 @@ export default function AppActivatePage() {
                     </p>
                   </>
                 ) : (
-                  <p className="text-[11px] text-warm-400">
-                    The download continues in the background if you proceed.
-                  </p>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-warm-200 bg-warm-50 px-3.5 py-1.5 text-xs font-medium text-warm-700 shadow-2xs">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-mint-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-mint-500"></span>
+                    </span>
+                    <span>
+                      {progress < 40
+                        ? "🤖 Downloading on-device AI model..."
+                        : progress < 70
+                        ? "📚 Downloading resources just for you..."
+                        : progress < 90
+                        ? "✨ Synthesizing tailored courses & notes..."
+                        : "🔒 Finalizing offline security & certificates..."}
+                    </span>
+                  </div>
                 )}
               </div>
             </div>
@@ -247,7 +260,7 @@ export default function AppActivatePage() {
                     id="activation-code"
                     type="text"
                     value={code}
-                    onChange={(e) => setCode(e.target.value.toUpperCase())}
+                    onChange={(e) => setCode(formatActivationCodeInput(e.target.value, code))}
                     placeholder="TRB-XXXX-XXXX"
                     className="mt-1.5 font-mono text-center tracking-widest text-base uppercase"
                     disabled={loading}

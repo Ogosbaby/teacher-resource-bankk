@@ -78,6 +78,8 @@ export default function SignUpWizardPage() {
               email={r.email}
               phone={r.phone}
               error={r.error}
+              checkingEmail={r.checkingEmail}
+              emailConflict={r.emailConflict}
               onNameChange={r.setName}
               onEmailChange={r.setEmail}
               onPhoneChange={r.setPhone}

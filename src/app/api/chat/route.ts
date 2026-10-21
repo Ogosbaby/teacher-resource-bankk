@@ -9,18 +9,40 @@ import {
   getSessionMessages,
 } from "@/lib/services/chat.service";
 
+import { checkRateLimit, getClientIp } from "@/lib/security/rate-limit";
+
 export async function POST(req: NextRequest) {
+  // Rate limit: max 30 chat messages per minute per IP
+  const clientIp = getClientIp(req);
+  const rateLimit = checkRateLimit(`chat:${clientIp}`, {
+    maxRequests: 30,
+    windowSeconds: 60,
+  });
+
+  if (!rateLimit.success) {
+    return new Response(
+      `Rate limit reached. Please wait ${rateLimit.resetInSeconds}s before sending another message.`,
+      {
+        status: 429,
+        headers: { "Retry-After": String(rateLimit.resetInSeconds) },
+      }
+    );
+  }
+
   const session = await auth();
 
-  const { message, sessionId, history: clientHistory } = (await req.json()) as {
-    message: string;
-    sessionId?: string;
-    history?: { role: "user" | "assistant"; content: string }[];
-  };
+  const body = await req.json().catch(() => null);
+  const rawMessage = body?.message;
+  const sessionId = body?.sessionId;
+  const clientHistory = body?.history;
 
-  if (!message || typeof message !== "string") {
+  if (!rawMessage || typeof rawMessage !== "string") {
     return new Response("Missing message", { status: 400 });
   }
+
+  // Constrain message length to 3,000 characters to prevent token exhaustion attacks
+  const message = rawMessage.trim().slice(0, 3000);
+
 
   let chatSessionId = sessionId;
   let history: { role: "user" | "assistant" | "system"; content: string }[] = [];

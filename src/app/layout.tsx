@@ -37,6 +37,13 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${lexend.variable} ${inter.variable} ${jetbrainsMono.variable}`}>
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body>
         <NativeBridge />
         <SplashHandoff />

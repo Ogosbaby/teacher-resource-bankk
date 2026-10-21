@@ -6,6 +6,7 @@ import { Button } from "@/components/ui";
 import { getWhatsAppSupportUrl } from "@/lib/support/whatsapp";
 import type { ClassLevel } from "@/lib/content/curriculum";
 import { redeemActivationCode } from "@/lib/offline/activation";
+import { formatActivationCodeInput } from "@/lib/utils/format-code";
 
 declare global {
   interface Window {
@@ -282,7 +283,7 @@ export function StepActivate({
               type="text"
               placeholder="e.g. TRB-2026-TERM1"
               value={manualCode}
-              onChange={(e) => setManualCode(e.target.value)}
+              onChange={(e) => setManualCode(formatActivationCodeInput(e.target.value, manualCode))}
               className="w-full rounded-xl border border-warm-300 bg-white px-3 py-2 text-xs font-mono font-bold uppercase tracking-wider text-ink focus:border-mint-600 focus:outline-none"
             />
             {codeError && <p className="text-[11px] text-rose-600 font-medium">{codeError}</p>}

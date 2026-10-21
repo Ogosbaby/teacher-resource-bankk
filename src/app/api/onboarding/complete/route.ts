@@ -1,10 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth/config";
 import { db } from "@/lib/db/client";
-import { users } from "@/lib/db/schema";
+import { users, customers } from "@/lib/db/schema";
+import { checkRateLimit, getClientIp } from "@/lib/security/rate-limit";
 
 const createSchema = z.object({
   mode: z.literal("create"),
@@ -21,7 +22,20 @@ const updateSchema = z.object({
   subjects: z.array(z.string()).min(1),
 });
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  // Rate limit: max 5 registration attempts per minute per IP
+  const clientIp = getClientIp(req);
+  const rateLimit = checkRateLimit(`onboarding:${clientIp}`, {
+    maxRequests: 5,
+    windowSeconds: 60,
+  });
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { error: `Too many attempts. Please wait ${rateLimit.resetInSeconds}s.` },
+      { status: 429, headers: { "Retry-After": String(rateLimit.resetInSeconds) } }
+    );
+  }
+
   const raw = await req.json().catch(() => null);
   const parsed = z.union([createSchema, updateSchema]).safeParse(raw);
   if (!parsed.success) {
@@ -33,6 +47,11 @@ export async function POST(req: Request) {
     const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
     if (existing.length > 0) {
       return NextResponse.json({ error: "An account with this email already exists." }, { status: 409 });
+    }
+
+    const existingCustomer = await db.select({ id: customers.id }).from(customers).where(eq(customers.email, email)).limit(1);
+    if (existingCustomer.length > 0) {
+      return NextResponse.json({ error: "An account or pass with this email already exists." }, { status: 409 });
     }
 
     const [created] = await db

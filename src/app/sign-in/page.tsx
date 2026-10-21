@@ -21,6 +21,7 @@ import {
   saveTeacherProfile,
   syncTermPassWithServer,
 } from "@/lib/offline";
+import { formatActivationCodeInput } from "@/lib/utils/format-code";
 
 import { isNativeApp } from "@/lib/native/app";
 
@@ -191,7 +192,7 @@ export default function SignInPage() {
                   id="activation-code"
                   type="text"
                   value={code}
-                  onChange={(e) => setCode(e.target.value.toUpperCase())}
+                  onChange={(e) => setCode(formatActivationCodeInput(e.target.value, code))}
                   placeholder="TRB-XXXX-XXXX"
                   className="mt-1.5 font-mono text-center tracking-widest uppercase text-base"
                   required

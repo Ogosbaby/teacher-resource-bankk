@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormattedMarkdown } from "@/components/ui/formatted-markdown";
+import { FormattedMarkdown, MathText } from "@/components/ui/formatted-markdown";
 import { Badge, Button, Card, CardBody } from "@/components/ui";
 import { cn } from "@/lib/utils/cn";
 
@@ -262,7 +262,9 @@ export function CoursePlayer({
                         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-warm-100 text-xs font-bold text-ink">
                           {i + 1}
                         </span>
-                        <h2 className="text-base font-bold text-ink sm:text-lg">{m.title}</h2>
+                        <h2 className="text-base font-bold text-ink sm:text-lg">
+                          <MathText text={m.title} />
+                        </h2>
                       </div>
                       {isDone && <Badge variant="published">Done</Badge>}
                     </div>

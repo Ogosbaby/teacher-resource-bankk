@@ -6,6 +6,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import { FormattedMarkdown } from "@/components/ui/formatted-markdown";
 import { Button } from "@/components/ui";
 
+import { getDeviceToken, isModelReady } from "@/lib/offline";
+import { runWllamaInference } from "@/lib/offline/wllama-runner";
+import { generateOfflineLessonPlan } from "@/lib/offline/offline-planner";
+
 type Message = { role: "user" | "assistant"; content: string };
 type Feedback = "useful" | "needs-editing" | "incorrect" | null;
 
@@ -22,6 +26,56 @@ export function FloatingChat() {
   useEffect(() => {
     if (open) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, open]);
+
+  /**
+   * Offline AI fallback — tries wllama on-device inference first,
+   * then falls back to the rule-based curriculum planner.
+   */
+  async function getOfflineReply(promptText: string): Promise<string> {
+    if (isModelReady()) {
+      try {
+        const wllamaOutput = await runWllamaInference(promptText);
+        if (wllamaOutput && wllamaOutput.trim().length > 0) {
+          return wllamaOutput;
+        }
+      } catch (e) {
+        console.warn("Wllama on-device inference failed, falling back to curriculum engine:", e);
+      }
+    }
+
+    const q = promptText.toLowerCase();
+    const isPlan = q.includes("lesson") || q.includes("plan") || q.includes("note") || q.includes("draft") || q.includes("teach") || q.includes("explain");
+
+    if (isPlan) {
+      try {
+        let detectedSubject = "basic science";
+        if (q.includes("math") || q.includes("algebra") || q.includes("geometry") || q.includes("fraction") || q.includes("number") || q.includes("quadratic")) {
+          detectedSubject = "mathematics";
+        } else if (q.includes("english") || q.includes("grammar") || q.includes("noun") || q.includes("essay") || q.includes("comprehension") || q.includes("peel")) {
+          detectedSubject = "english studies";
+        }
+
+        let detectedLevel = "JSS";
+        if (q.includes("primary") || q.includes("pri 1") || q.includes("pri 2") || q.includes("pri 3") || q.includes("pri 4") || q.includes("pri 5") || q.includes("pri 6")) {
+          detectedLevel = "Primary";
+        } else if (q.includes("sss") || q.includes("ss 1") || q.includes("ss 2") || q.includes("ss 3") || q.includes("waec")) {
+          detectedLevel = "SSS";
+        }
+
+        const draft = generateOfflineLessonPlan({
+          topic: promptText.replace(/draft|create|prepare|write|a 40-minute|lesson note on|lesson plan on/gi, "").trim() || promptText,
+          subject: detectedSubject,
+          gradeLevel: detectedLevel,
+        });
+
+        return `*(Offline Curriculum Mode)*\n\n# ${draft.title}\n**Subject:** ${draft.subject} | **Level:** ${draft.gradeLevel}\n\n${draft.body}\n\n---\n*💡 This note was generated completely offline from your cached Nigerian curriculum engine.*`;
+      } catch (err) {
+        console.warn("Offline planner fallback error:", err);
+      }
+    }
+
+    return `*(Offline Curriculum Mode)*\n\nI am running 100% offline using your on-device Nigerian curriculum model.\n\nYou can ask me anytime to:\n- **Draft 40-minute NERDC lesson plans** for Primary, JSS, or SSS.\n- **Explain math & science equations** with step-by-step chalkboard breakdowns.\n- **Suggest low-cost teaching aids** using locally sourced Nigerian realia.\n- **Create WAEC/BECE practice questions** with marking rubrics.`;
+  }
 
   async function sendMessage() {
     if (!input.trim() || isStreaming) return;
@@ -42,9 +96,14 @@ export function FloatingChat() {
       .map((m) => ({ role: m.role, content: m.content }));
 
     try {
+      const token = getDeviceToken();
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token?.deviceId ? { "x-device-id": token.deviceId } : {}),
+          ...(token?.boundActivationCode ? { "x-device-token": token.boundActivationCode } : {}),
+        },
         body: JSON.stringify({
           message: userMessage.content,
           history: [...historyToSend, { role: "user", content: userMessage.content }],
@@ -62,12 +121,13 @@ export function FloatingChat() {
       if (newSessionId) setSessionId(newSessionId);
 
       if (!res.ok || !res.body) {
+        // Fall back to offline AI
+        const fallback = await getOfflineReply(userMessage.content);
         setMessages((prev) => {
           const updated = [...prev];
           updated[updated.length - 1] = {
             role: "assistant",
-            content:
-              "The assistant is unavailable right now. Please try again.",
+            content: fallback,
           };
           return updated;
         });
@@ -90,18 +150,15 @@ export function FloatingChat() {
           return updated;
         });
       }
-    } catch (err) {
-      console.error("Chat request failed:", err);
+    } catch {
+      // Network error — use offline AI
+      const fallback = await getOfflineReply(userMessage.content);
       setMessages((prev) => {
         const updated = [...prev];
-        const last = updated[updated.length - 1];
-        if (last?.role === "assistant" && !last.content) {
-          updated[updated.length - 1] = {
-            role: "assistant",
-            content:
-              "The assistant is unreachable. Is the local model running?",
-          };
-        }
+        updated[updated.length - 1] = {
+          role: "assistant",
+          content: fallback,
+        };
         return updated;
       });
     } finally {

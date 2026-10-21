@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Badge, Button } from "@/components/ui";
 import { CoursePlayer } from "@/components/courses/course-player";
+import { CourseThumbnail } from "@/components/courses/course-thumbnail";
+
 import { getTailoredCourseBySlug, getCustomGeneratedCourses } from "@/lib/content/course-generator";
+import { MathText } from "@/components/ui/formatted-markdown";
 import type { CPDCourse } from "@/lib/content/cpd-courses";
 
 export interface CourseDetailViewProps {
@@ -143,8 +146,13 @@ export function CourseDetailView({ initialView, slug }: CourseDetailViewProps) {
       </div>
 
       <div className="overflow-hidden rounded-oak border border-warm-200 bg-white shadow-warm-sm">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={cover} alt="" className="h-48 w-full object-cover grayscale sm:h-64" />
+        <CourseThumbnail
+          slug={course.slug}
+          title={course.title}
+          subject={course.subject}
+          aspectRatio="banner"
+        />
+
         <div className="p-6 sm:p-8">
           <div className="flex flex-wrap items-center gap-2">
             {course.subject && <Badge>{course.subject}</Badge>}
@@ -160,7 +168,7 @@ export function CourseDetailView({ initialView, slug }: CourseDetailViewProps) {
           </div>
 
           <h1 className="mt-4 text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
-            {course.title}
+            <MathText text={course.title} />
           </h1>
           {course.description && (
             <p className="mt-3 max-w-3xl text-warm-600 leading-relaxed">{course.description}</p>

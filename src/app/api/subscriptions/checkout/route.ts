@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { sql, and, or, eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { orders, customers, activationCodes } from "@/lib/db/schema";
+import { orders, customers, activationCodes, users } from "@/lib/db/schema";
 import { mintActivationCode } from "@/lib/services/activation-codes.service";
-import { upsertCustomerByEmail } from "@/lib/services/customers.service";
+import { upsertCustomerByEmail, findCustomerByEmail } from "@/lib/services/customers.service";
 import { sendActivationCodeEmail } from "@/lib/email/activation-code";
 import { SHIPPED_BATCH } from "@/lib/offline/activation-batch";
 
@@ -34,6 +35,52 @@ export async function POST(req: Request) {
 
     const { name, email, phone, schoolName, classLevels, subjects, reference } = parsed.data;
     const cleanEmail = email.toLowerCase().trim();
+
+    // Check if user already exists
+    const existingUser = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(sql`lower(${users.email}) = ${cleanEmail}`)
+      .limit(1);
+
+    if (existingUser.length > 0) {
+      return NextResponse.json(
+        {
+          error: "An account with this email address already exists. Please sign in to your account.",
+          alreadyRegistered: true,
+        },
+        { status: 409 }
+      );
+    }
+
+    // Check if customer already has an active activation pass
+    const existingCustomer = await findCustomerByEmail(cleanEmail);
+    if (existingCustomer) {
+      const existingCodes = await db
+        .select({ id: activationCodes.id })
+        .from(activationCodes)
+        .where(
+          and(
+            eq(activationCodes.customerId, existingCustomer.id),
+            or(
+              eq(activationCodes.status, "issued"),
+              eq(activationCodes.status, "active"),
+              eq(activationCodes.status, "redeemed")
+            )
+          )
+        )
+        .limit(1);
+
+      if (existingCodes.length > 0) {
+        return NextResponse.json(
+          {
+            error: "This email address is already registered with an active activation code. Please check your inbox or sign in.",
+            alreadyRegistered: true,
+          },
+          { status: 409 }
+        );
+      }
+    }
 
     // 1. Pick a code: prefer a cryptographically signed batch code so it works 100% offline
     // in the installed APK, or mint a fresh one if batch codes are exhausted

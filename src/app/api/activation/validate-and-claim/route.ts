@@ -7,6 +7,8 @@ import { normaliseCode } from "@/lib/offline/device";
 import { SHIPPED_BATCH, isShippedBatchTrusted, isValidCodeFormat } from "@/lib/offline/activation-batch";
 import { isCodeRevoked } from "@/lib/services/activation-revocations.service";
 
+import { checkRateLimit, getClientIp } from "@/lib/security/rate-limit";
+
 export const dynamic = "force-dynamic";
 
 const bodySchema = z.object({
@@ -16,18 +18,33 @@ const bodySchema = z.object({
 
 /**
  * Strict server-side activation check and atomic hardware device binding.
- *
- * Ensures:
- * 1. A code that has been activated by any user/device cannot ever be redeemed by another device.
- * 2. If the code is already bound to this exact deviceId, it succeeds idempotently.
- * 3. If bound to any other deviceId, it is rejected with 409 "This activation code has already been activated by another user".
- * 4. Returns the teacher profile (name, class levels, subjects) associated with the order/registration.
  */
 export async function POST(req: Request) {
+  // 0. Anti-brute-force rate limiting: max 8 attempts per 5 minutes per IP
+  const clientIp = getClientIp(req);
+  const rateLimit = checkRateLimit(`activation:${clientIp}`, {
+    maxRequests: 8,
+    windowSeconds: 300,
+  });
+
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      {
+        error: `Too many activation attempts. Please wait ${rateLimit.resetInSeconds} seconds before trying again.`,
+        code: "RATE_LIMITED",
+      },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rateLimit.resetInSeconds) },
+      }
+    );
+  }
+
   const parsed = bodySchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid activation request format." }, { status: 400 });
   }
+
 
   const code = normaliseCode(parsed.data.code);
   const deviceId = parsed.data.deviceId;

@@ -4,7 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui";
+import { CourseThumbnail } from "@/components/courses/course-thumbnail";
+import { MathText } from "@/components/ui/formatted-markdown";
 import { cn } from "@/lib/utils/cn";
+
 
 export interface CatalogCourse {
   id: string;
@@ -263,26 +266,17 @@ function CourseCard({
     >
       <Link href={`${basePath}/${c.slug}`} className="absolute inset-0 z-10" aria-label={`Open ${c.title}`} />
       <div className="relative overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={coverFor(c)}
-          alt=""
-          className="h-44 w-full object-cover grayscale transition-transform duration-500 group-hover:scale-105"
-        />
-        {c.subject && (
-          <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-xs font-medium text-ink shadow-sm">
-            {c.subject}
-          </span>
-        )}
+        <CourseThumbnail slug={c.slug} title={c.title} subject={c.subject} />
         {isRecommended && (
-          <span className="absolute right-3 top-3 rounded-full bg-mint-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
+          <span className="absolute right-3 top-3 z-20 rounded-full bg-mint-500/90 px-2.5 py-0.5 text-[10px] font-bold text-ink shadow-sm border border-mint-300">
             Recommended
           </span>
         )}
       </div>
+
       <div className="flex flex-1 flex-col p-5">
         <h3 className="font-semibold leading-snug text-ink underline-offset-4 group-hover:underline">
-          {c.title}
+          <MathText text={c.title} />
         </h3>
         {c.description && (
           <p className="mt-2 line-clamp-2 text-sm text-neutral-600">{c.description}</p>
