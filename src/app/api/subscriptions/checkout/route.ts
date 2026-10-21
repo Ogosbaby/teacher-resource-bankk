@@ -35,81 +35,65 @@ export async function POST(req: Request) {
 
     const { name, email, phone, schoolName, classLevels, subjects, reference } = parsed.data;
     const cleanEmail = email.toLowerCase().trim();
-
-    // Check if user already exists
-    const existingUser = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(sql`lower(${users.email}) = ${cleanEmail}`)
-      .limit(1);
-
-    if (existingUser.length > 0) {
-      return NextResponse.json(
-        {
-          error: "An account with this email address already exists. Please sign in to your account.",
-          alreadyRegistered: true,
-        },
-        { status: 409 }
-      );
-    }
-
-    // Check if customer already has an active activation pass
-    const existingCustomer = await findCustomerByEmail(cleanEmail);
-    if (existingCustomer) {
-      const existingCodes = await db
-        .select({ id: activationCodes.id })
-        .from(activationCodes)
-        .where(
-          and(
-            eq(activationCodes.customerId, existingCustomer.id),
-            or(
-              eq(activationCodes.status, "issued"),
-              eq(activationCodes.status, "active"),
-              eq(activationCodes.status, "redeemed")
-            )
-          )
-        )
-        .limit(1);
-
-      if (existingCodes.length > 0) {
-        return NextResponse.json(
-          {
-            error: "This email address is already registered with an active activation code. Please check your inbox or sign in.",
-            alreadyRegistered: true,
-          },
-          { status: 409 }
-        );
-      }
-    }
-
-    // 1. Pick a code: prefer a cryptographically signed batch code so it works 100% offline
-    // in the installed APK, or mint a fresh one if batch codes are exhausted
-    let codeToAssign: string = "";
-
-    try {
-      // Find unused code from SHIPPED_BATCH
-      const usedCodesInDb = await db
-        .select({ code: activationCodes.code })
-        .from(activationCodes);
-      const usedSet = new Set(usedCodesInDb.map((c) => c.code.toUpperCase()));
-
-      const availableBatchCode = SHIPPED_BATCH.codes.find(
-        (c) => !usedSet.has(c.code.toUpperCase())
-      );
-
-      if (availableBatchCode) {
-        codeToAssign = availableBatchCode.code;
-      } else {
-        codeToAssign = mintActivationCode();
-      }
-    } catch (e) {
-      // Fallback to first available batch code or minted code
-      codeToAssign = SHIPPED_BATCH.codes[0]?.code || mintActivationCode();
-    }
-
-    // 2. Record Customer & Order in database
     const orderRef = reference || `TRB-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
+    let codeToAssign: string = "";
+    let isReissued = false;
+
+    // 1. Check if this email already has an issued/active activation code
+    try {
+      const existingCustomer = await findCustomerByEmail(cleanEmail);
+      if (existingCustomer) {
+        const [existingCodeRow] = await db
+          .select({ code: activationCodes.code })
+          .from(activationCodes)
+          .where(
+            and(
+              eq(activationCodes.customerId, existingCustomer.id),
+              or(
+                eq(activationCodes.status, "issued"),
+                eq(activationCodes.status, "active"),
+                eq(activationCodes.status, "redeemed")
+              )
+            )
+          )
+          .orderBy(sql`${activationCodes.createdAt} desc`)
+          .limit(1);
+
+        if (existingCodeRow?.code) {
+          codeToAssign = existingCodeRow.code;
+          isReissued = true;
+          console.log(`[checkout] Found existing code ${codeToAssign} for ${cleanEmail}, re-dispatching email.`);
+        }
+      }
+    } catch (checkErr) {
+      console.warn("[checkout] Safe pre-check query notice:", checkErr);
+    }
+
+    // 2. If no existing code, pick from SHIPPED_BATCH or mint a fresh unguessable code
+    if (!codeToAssign) {
+      try {
+        const usedCodesInDb = await db
+          .select({ code: activationCodes.code })
+          .from(activationCodes);
+        const usedSet = new Set(usedCodesInDb.map((c) => c.code.toUpperCase()));
+
+        const availableBatchCode = SHIPPED_BATCH.codes.find(
+          (c) => !usedSet.has(c.code.toUpperCase())
+        );
+
+        if (availableBatchCode) {
+          codeToAssign = availableBatchCode.code;
+        } else {
+          codeToAssign = mintActivationCode();
+        }
+      } catch (e) {
+        // Fallback to first available batch code or minted code
+        codeToAssign = SHIPPED_BATCH.codes[0]?.code || mintActivationCode();
+      }
+    }
+
+    // 3. Record Customer, Order & Code in database (safe / non-blocking)
     try {
       const cust = await upsertCustomerByEmail({
         fullName: name,
@@ -132,22 +116,25 @@ export async function POST(req: Request) {
         })
         .returning();
 
-      await db.insert(activationCodes).values({
-        code: codeToAssign,
-        status: "issued",
-        customerId: cust.id,
-        orderId: order.id,
-        durationMonths: 3,
-        issuedAt: new Date(),
-        deliveredTo: cleanEmail,
-      });
+      if (!isReissued) {
+        await db.insert(activationCodes).values({
+          code: codeToAssign,
+          status: "issued",
+          customerId: cust.id,
+          orderId: order?.id ?? null,
+          durationMonths: 3,
+          issuedAt: new Date(),
+          deliveredTo: cleanEmail,
+        });
+      }
     } catch (dbErr) {
       console.warn("[checkout] DB logging optional notice:", dbErr);
     }
 
-    // 3. Send email to user with their activation code
+    // 4. Send email to user with their activation code
+    let emailResult: any = null;
     try {
-      const emailResult = await sendActivationCodeEmail({
+      emailResult = await sendActivationCodeEmail({
         to: cleanEmail,
         customerName: name,
         code: codeToAssign,
@@ -156,7 +143,7 @@ export async function POST(req: Request) {
       });
       console.log(`[checkout] Email dispatch to ${cleanEmail}:`, emailResult);
     } catch (emailErr) {
-      console.warn("[checkout] Email dispatch error:", emailErr);
+      console.error("[checkout] Email dispatch error:", emailErr);
     }
 
     return NextResponse.json({
@@ -165,6 +152,8 @@ export async function POST(req: Request) {
       code: codeToAssign,
       email: cleanEmail,
       name,
+      isReissued,
+      emailStatus: emailResult?.status || "sent",
       classLevels: classLevels || [],
       subjects: subjects || [],
     });

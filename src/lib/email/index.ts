@@ -68,10 +68,15 @@ function getSmtpTransporter() {
     port,
     secure,
     auth: { user, pass },
+    connectionTimeout: 8000,
+    greetingTimeout: 8000,
+    socketTimeout: 10000,
   });
 }
 
 export async function sendEmail(message: OutboundEmail): Promise<EmailResult> {
+  let smtpError: string | null = null;
+
   // 1. Prefer SMTP if configured (no sandbox restriction to single recipient)
   const smtp = getSmtpTransporter();
   if (smtp) {
@@ -85,35 +90,48 @@ export async function sendEmail(message: OutboundEmail): Promise<EmailResult> {
       });
       console.log(`[email] Delivered via SMTP to ${message.to}, messageId:`, info.messageId);
       return { status: "sent", id: info.messageId };
-    } catch (smtpErr) {
-      console.error("[email] SMTP error:", smtpErr);
-      return { status: "failed", error: smtpErr instanceof Error ? smtpErr.message : String(smtpErr) };
+    } catch (err) {
+      smtpError = err instanceof Error ? err.message : String(err);
+      console.warn("[email] SMTP delivery failed, attempting fallback provider:", smtpError);
     }
   }
 
-  // 2. Resend provider
+  // 2. Resend provider (primary or failover)
   const resend = getResendClient();
-  if (!resend) {
-    return { status: "skipped", reason: "Neither RESEND_API_KEY nor SMTP credentials are set." };
-  }
+  if (resend) {
+    try {
+      const { data, error } = await resend.emails.send({
+        from: emailFromAddress(),
+        to: message.to,
+        subject: message.subject,
+        html: message.html,
+        text: message.text,
+      });
 
-  try {
-    const { data, error } = await resend.emails.send({
-      from: emailFromAddress(),
-      to: message.to,
-      subject: message.subject,
-      html: message.html,
-      text: message.text,
-    });
-
-    if (error) {
-      console.warn(`[email] Resend delivery to ${message.to} failed:`, error.message);
-      return { status: "failed", error: error.message || JSON.stringify(error) };
+      if (!error && data?.id) {
+        console.log(`[email] Delivered via Resend to ${message.to}, id:`, data.id);
+        return { status: "sent", id: data.id };
+      }
+      if (error) {
+        console.warn(`[email] Resend delivery to ${message.to} failed:`, error.message);
+        return {
+          status: "failed",
+          error: `Resend error: ${error.message}${smtpError ? ` (SMTP error: ${smtpError})` : ""}`,
+        };
+      }
+    } catch (err) {
+      const resendErr = err instanceof Error ? err.message : String(err);
+      console.error("[email] Resend exception:", resendErr);
+      return {
+        status: "failed",
+        error: `Resend error: ${resendErr}${smtpError ? ` (SMTP error: ${smtpError})` : ""}`,
+      };
     }
-    console.log(`[email] Delivered via Resend to ${message.to}, id:`, data?.id);
-    return { status: "sent", id: data?.id ?? null };
-  } catch (err) {
-    console.error("[email] Resend exception:", err);
-    return { status: "failed", error: err instanceof Error ? err.message : String(err) };
   }
+
+  if (smtpError) {
+    return { status: "failed", error: `SMTP error: ${smtpError}` };
+  }
+
+  return { status: "skipped", reason: "Neither RESEND_API_KEY nor SMTP credentials are set." };
 }
