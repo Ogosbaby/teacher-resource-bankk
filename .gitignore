@@ -13,9 +13,9 @@ dist/
 tsconfig.tsbuildinfo
 .storage/
 
-# APK binaries — too large for GitHub, distributed via download route
+# APK binaries — keep public/downloads/trb.apk for direct Vercel download
 *.apk
-public/downloads/*.apk
+!public/downloads/trb.apk
 build.log
 .vercel
 .env*
